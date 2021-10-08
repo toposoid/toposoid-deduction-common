@@ -3,6 +3,8 @@ This is a common library used by toposoid developer in Toposoid projects.
 Toposoid is a knowledge base construction platform.(see [Toposoid　Root Project](https://github.com/toposoid/toposoid.git))
 In particular, this module is used by units that perform deductive reasoning in Toposoid projects.
 
+[![Unit Test Action](https://github.com/toposoid/toposoid-deduction-common/actions/workflows/action.yml/badge.svg?branch=main)](https://github.com/toposoid/toposoid-deduction-common/actions/workflows/action.yml)
+
 ## Requirements
 * Docker version 20.10.x, or later
 * docker-compose version 1.22.x
