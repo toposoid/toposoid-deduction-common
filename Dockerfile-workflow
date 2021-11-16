@@ -1,7 +1,7 @@
 FROM toposoid/scala-nlp:2.12.12-0.1.0
 
 WORKDIR /app
-
+ARG TARGET_BRANCH
 ENV DEPLOYMENT=local
 ENV _JAVA_OPTIONS="-Xms2g -Xmx4g"
 
@@ -10,26 +10,38 @@ RUN apt-get update \
 && apt-get -y install git unzip \
 && git clone https://github.com/toposoid/scala-common.git \
 && cd scala-common \
+&& git fetch origin ${TARGET_BRANCH} \
+&& git checkout ${TARGET_BRANCH} \
 && sbt publishLocal \
 && cd .. \
 && git clone https://github.com/toposoid/toposoid-knowledgebase-model.git \
 && cd toposoid-knowledgebase-model \
+&& git fetch origin ${TARGET_BRANCH} \
+&& git checkout ${TARGET_BRANCH} \
 && sbt publishLocal \
 && cd .. \
 && git clone https://github.com/toposoid/toposoid-common.git \
 && cd toposoid-common \
+&& git fetch origin ${TARGET_BRANCH} \
+&& git checkout ${TARGET_BRANCH} \
 && sbt publishLocal \
 && cd .. \
 && git clone https://github.com/toposoid/scala-data-accessor-neo4j.git \
 && cd scala-data-accessor-neo4j \
+&& git fetch origin ${TARGET_BRANCH} \
+&& git checkout ${TARGET_BRANCH} \
 && sbt publishLocal \
 && cd .. \
 && git clone https://github.com/toposoid/toposoid-deduction-protocol-model.git \
 && cd toposoid-deduction-protocol-model \
+&& git fetch origin ${TARGET_BRANCH} \
+&& git checkout ${TARGET_BRANCH} \
 && sbt publishLocal \
 && cd .. \
-&& git clone https://github.com/toposoid/scala-common-nlp.git \
-&& cd scala-common-nlp \
+&& git clone https://github.com/toposoid/scala-common-nlp-japanese.git \
+&& cd scala-common-nlp-japanese \
+&& git fetch origin ${TARGET_BRANCH} \
+&& git checkout ${TARGET_BRANCH} \
 && cp -f /tmp/entity_vector.model.bin src/main/resources/ \
 && cp -f /tmp/wnjpn.db src/main/resources/ \
 && sbt publishLocal \
@@ -39,13 +51,20 @@ RUN apt-get update \
 && git checkout scala-2.12-support \
 && sbt publishLocal \
 && cd .. \
-&& git clone https://github.com/toposoid/toposoid-sentence-parser.git \
-&& cd toposoid-sentence-parser \
+&& git clone https://github.com/toposoid/toposoid-sentence-parser-japanese.git \
+&& cd toposoid-sentence-parser-japanese \
+&& git fetch origin ${TARGET_BRANCH} \
+&& git checkout ${TARGET_BRANCH} \
 && sbt publishLocal \
 && cd .. \
 && git clone https://github.com/toposoid/toposoid-sentence-transformer-neo4j.git \
 && cd toposoid-sentence-transformer-neo4j \
+&& git fetch origin ${TARGET_BRANCH} \
+&& git checkout ${TARGET_BRANCH} \
 && sbt publishLocal \
 && cd .. \
-&& git clone https://github.com/toposoid/toposoid-deduction-common.git
+&& git clone https://github.com/toposoid/toposoid-deduction-common.git \
+&& cd toposoid-deduction-common \
+&& git fetch origin ${TARGET_BRANCH} \
+&& git checkout ${TARGET_BRANCH}
 

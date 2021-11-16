@@ -9,7 +9,7 @@ networks:
 
 services:
   toposoid-deduction-common:
-    image: toposoid-deduction-common:0.1.0
+    image: toposoid-deduction-common:0.1.1
     tty: true
     environment:
       - GRAPHDB_HOST=172.30.0.2
