@@ -63,7 +63,7 @@ RUN apt-get update \
 && git checkout ${TARGET_BRANCH} \
 && sbt publishLocal \
 && cd .. \
-&& git clone https://github.com/toposoid/toposoid-deduction-common.git
+&& git clone https://github.com/toposoid/toposoid-deduction-common.git \
 && cd toposoid-deduction-common \
 && git fetch origin ${TARGET_BRANCH} \
 && git checkout ${TARGET_BRANCH}
