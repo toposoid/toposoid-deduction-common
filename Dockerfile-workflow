@@ -38,8 +38,8 @@ RUN apt-get update \
 && git checkout ${TARGET_BRANCH} \
 && sbt publishLocal \
 && cd .. \
-&& git clone https://github.com/toposoid/scala-common-nlp.git \
-&& cd scala-common-nlp \
+&& git clone https://github.com/toposoid/scala-common-nlp-japanese.git \
+&& cd scala-common-nlp-japanese \
 && git fetch origin ${TARGET_BRANCH} \
 && git checkout ${TARGET_BRANCH} \
 && cp -f /tmp/entity_vector.model.bin src/main/resources/ \
@@ -51,8 +51,8 @@ RUN apt-get update \
 && git checkout scala-2.12-support \
 && sbt publishLocal \
 && cd .. \
-&& git clone https://github.com/toposoid/toposoid-sentence-parser.git \
-&& cd toposoid-sentence-parser \
+&& git clone https://github.com/toposoid/toposoid-sentence-parser-japanese.git \
+&& cd toposoid-sentence-parser-japanese \
 && git fetch origin ${TARGET_BRANCH} \
 && git checkout ${TARGET_BRANCH} \
 && sbt publishLocal \
