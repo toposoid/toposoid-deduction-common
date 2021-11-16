@@ -2,7 +2,7 @@ import Dependencies._
 import sbt.Keys.libraryDependencies
 
 ThisBuild / scalaVersion     := "2.12.12"
-ThisBuild / version          := "0.1.0"
+ThisBuild / version          := "0.1.1"
 ThisBuild / organization     := "com.ideal.linked"
 
 lazy val root = (project in file("."))
@@ -13,8 +13,7 @@ lazy val root = (project in file("."))
     libraryDependencies += "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.14",
     libraryDependencies += "com.typesafe.akka" %% "akka-stream" % "2.5.31",
     libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test,
-    libraryDependencies += "com.ideal.linked" %% "toposoid-common" % "0.1.0" % Test,
-    libraryDependencies += "com.ideal.linked" %% "toposoid-sentence-transformer-neo4j" % "0.1.0" % Test
+    libraryDependencies += "com.ideal.linked" %% "toposoid-sentence-transformer-neo4j" % "0.1.1" % Test
 
   )
   .enablePlugins(AutomateHeaderPlugin)

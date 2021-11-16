@@ -7,7 +7,7 @@ on:
 env:
   PJ_ACTOR: toposoid
   PJ_REPO: toposoid-deduction-common
-  PJ_VERSION: 0.1.0
+  PJ_VERSION: 0.1.1
 jobs:
   unit-test_toposoid-deduction-common:
     runs-on: ubuntu-20.04
