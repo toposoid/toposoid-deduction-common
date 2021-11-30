@@ -1,4 +1,4 @@
-name: Unit Test Action
+name: Unit Test
 on:
   push:
     branches:
@@ -8,7 +8,8 @@ on:
 env:
   PJ_ACTOR: toposoid
   PJ_REPO: toposoid-deduction-common
-  PJ_VERSION: 0.1.1
+  PJ_BRANCH: feature
+  PJ_VERSION: 0.1-SNAPSHOT
 jobs:
   unit-test_toposoid-deduction-common:
     runs-on: ubuntu-20.04
@@ -19,7 +20,7 @@ jobs:
             repository: ${{ env.PJ_ACTOR }}/${{ env.PJ_REPO }}
       - name: Execute tests
         run: |
-            docker build --tag ${{ env.PJ_REPO }}:${{ env.PJ_VERSION }} -f Dockerfile-workflow .
+            docker build --build-arg TARGET_BRANCH=${{ env.PJ_BRANCH }} --tag ${{ env.PJ_REPO }}:${{ env.PJ_VERSION }} -f Dockerfile-workflow .
             docker-compose -f docker-compose-workflow.yml up -d
             docker-compose -f docker-compose-workflow.yml exec -T ${{ env.PJ_REPO }} bash -c "cd ${{ env.PJ_REPO }} && sbt headerCheck"
             docker-compose -f docker-compose-workflow.yml exec -T ${{ env.PJ_REPO }} bash -c "cd ${{ env.PJ_REPO }} && sbt test:headerCheck"
