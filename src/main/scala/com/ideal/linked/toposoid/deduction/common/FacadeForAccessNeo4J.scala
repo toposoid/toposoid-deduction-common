@@ -24,17 +24,36 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import play.api.libs.json.Json
 import com.ideal.linked.common.DeploymentConverter.conf
-import scala.util.{Failure, Success}
+import com.typesafe.scalalogging.LazyLogging
+
+import scala.util.{Failure, Success, Try}
 
 /**
  * Common functions used for microservices using Neo4J
  */
-object FacadeForAccessNeo4J {
+object FacadeForAccessNeo4J extends LazyLogging{
+
+  def getCypherQueryResult(query:String, target:String): String = Try{
+    val retryNum =  conf.getInt("retryCallMicroserviceNum") -1
+    for (i <- 0 to retryNum) {
+      val result:String  = this.getCypherQueryResultImpl(query, target)
+      if (result != """{"records":[]}""") {
+        return result
+      }
+      if(i == retryNum) throw new Exception("Results were not returned properly")
+    }
+    ""
+  }match {
+    case Success(s) => s
+    case Failure(e) => throw e
+  }
+
+
   /**
    * This function throws a query to the microservice and returns the result as Json
    * @param query
    */
-  def getCypherQueryResult(query:String, target:String): String = {
+  private def getCypherQueryResultImpl(query:String, target:String): String = {
 
     implicit val system = ActorSystem()
     implicit val materializer = ActorMaterializer()
@@ -56,8 +75,10 @@ object FacadeForAccessNeo4J {
       case Success(js) =>
         //println(s"Success: $js")
         queryResultJson = s"$js"
+        logger.info(s"Success: $js")
       case Failure(e) =>
-        println(s"Failure: $e")
+        //println(s"Failure: $e")
+        logger.error(s"Failure: $e")
     }
     while(!result.isCompleted){
       Thread.sleep(20)
