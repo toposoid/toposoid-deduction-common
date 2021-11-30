@@ -14,6 +14,8 @@ services:
     environment:
       - GRAPHDB_HOST=172.30.0.2
       - SCALA_DATA_ACCESSOR_NEO4J_WEB_HOST=172.30.0.3
+      - SENTENCE_PARSER_WEB_HOST=172.30.0.5
+      - COMMON_NLP_WEB_HOST=172.30.0.6
     networks:
       app_net:
         ipv4_address: 172.30.0.4
