@@ -37,7 +37,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
     val retryNum =  conf.getInt("retryCallMicroserviceNum") -1
     for (i <- 0 to retryNum) {
       val result:String  = this.getCypherQueryResultImpl(query, target)
-      if (result != """{"records":[]}""") {
+      if (result != "{}") {
         return result
       }
       if(i == retryNum) throw new Exception("Results were not returned properly")
@@ -70,7 +70,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
           Json.parse(data.getBytes("UTF-8"))
         }
       }
-    var queryResultJson:String = """{"records":[]}"""
+    var queryResultJson:String = "{}"
     result.onComplete {
       case Success(js) =>
         //println(s"Success: $js")

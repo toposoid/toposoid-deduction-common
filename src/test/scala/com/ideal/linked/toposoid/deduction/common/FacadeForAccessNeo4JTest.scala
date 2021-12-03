@@ -31,7 +31,7 @@ class FacadeForAccessNeo4JTest extends FlatSpec with DiagrammedAssertions with B
   }
 
   override def afterAll(): Unit = {
-    //Neo4JAccessor.delete()
+    Neo4JAccessor.delete()
   }
 
   "A query" should "be handled properly" in {
