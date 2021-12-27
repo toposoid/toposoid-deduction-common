@@ -24,7 +24,7 @@ services:
     depends_on:
       - neo4j
   scala-data-accessor-neo4j-web:
-    image: toposoid/scala-data-accessor-neo4j-web:0.1.0
+    image: toposoid/scala-data-accessor-neo4j-web:0.1-SNAPSHOT
     environment:
       - GRAPHDB_HOST=172.30.0.2
       - PRIVATE_IP_ADDRESS=172.30.0.3
