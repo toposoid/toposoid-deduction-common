@@ -50,7 +50,7 @@ class FacadeForAccessNeo4JTest extends FlatSpec with DiagrammedAssertions with B
   }
 
   "A query for english knowledge" should "be handled properly" in {
-    val query:String = "MATCH (n) WHERE n.lang='ja_JP' RETURN n"
+    val query:String = "MATCH (n) WHERE n.lang='en_US' RETURN n"
     val result:String = FacadeForAccessNeo4J.getCypherQueryResult(query, "")
     val neo4jRecords: Neo4jRecords = Json.parse(result).as[Neo4jRecords]
     val sentenceMap: List[(Int, String)] = neo4jRecords.records.reverse.map(record => {
