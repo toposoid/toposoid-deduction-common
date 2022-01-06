@@ -21,10 +21,8 @@ services:
     networks:
       app_net:
         ipv4_address: 172.30.0.9
-    depends_on:
-      - neo4j
   scala-data-accessor-neo4j-web:
-    image: toposoid/scala-data-accessor-neo4j-web:0.1-SNAPSHOT
+    image: toposoid/scala-data-accessor-neo4j-web:0.1-SNAPSHOT-workflow
     environment:
       - GRAPHDB_HOST=172.30.0.2
       - PRIVATE_IP_ADDRESS=172.30.0.3
@@ -33,11 +31,9 @@ services:
       app_net:
         ipv4_address: 172.30.0.3
     ports:
-      - 9005:9005
-    depends_on:
-      - neo4j
+      -9005:9005
   toposoid-sentence-parser-japanese-web:
-    image: toposoid/toposoid-sentence-parser-japanese-web:0.1-SNAPSHOT
+    image: toposoid/toposoid-sentence-parser-japanese-web:0.1-SNAPSHOT-workflow
     tty: true
     environment:
       - PRIVATE_IP_ADDRESS=172.30.0.4
@@ -47,11 +43,15 @@ services:
         ipv4_address: 172.30.0.4
     ports:
       - 9001:9001
-  scala-common-nlp-japanese-web:
-    image: toposoid/scala-common-nlp-japanese-web:0.1-SNAPSHOT
+  toposoid-common-nlp-japanese-web:
+    image: toposoid/toposoid-common-nlp-japanese-web:0.2-workflow
     tty: true
     environment:
       - PRIVATE_IP_ADDRESS=172.30.0.5
+      - SYNONYM_NOUN_SIMILARITY_THRESHHOLD_JP=0.52
+      - SYNONYM_VERB_SIMILARITY_THRESHHOLD_JP=0.52
+      - WORD2VEC_SIMILARITY_THRESHHOLD_JP=0.68
+      - CHIVE_MODEL_VERSION=chive-1.2-mc90.kv
       - PLAY_HTTP_PORT=9006
     networks:
       app_net:
@@ -70,13 +70,14 @@ services:
         ipv4_address: 172.30.0.6
     ports:
       - 9007:9007
-  scala-common-nlp-english-web:
-    image: toposoid/scala-common-nlp-english-web:0.1-SNAPSHOT
+  toposoid-common-nlp-english-web:
+    image: toposoid/toposoid-common-nlp-english-web:0.1-SNAPSHOT
     tty: true
     environment:
       - PRIVATE_IP_ADDRESS=172.30.0.7
-      - SYNONYM_NOUN_SIMILARITY_THRESHHOLD=0.52
-      - SYNONYM_VERB_SIMILARITY_THRESHHOLD=0.52
+      - SYNONYM_NOUN_SIMILARITY_THRESHHOLD_EN=0.52
+      - SYNONYM_VERB_SIMILARITY_THRESHHOLD_EN=0.52
+      - WORD2VEC_SIMILARITY_THRESHHOLD_EN=0.78
       - PLAY_HTTP_PORT=9008
     networks:
       app_net:
@@ -84,7 +85,7 @@ services:
     ports:
       - 9008:9008
   corenlp:
-    image: toposoid/corenlp:3.4.2
+    image: toposoid/corenlp:3.4.2-workflow
     networks:
       app_net:
         ipv4_address: 172.30.0.8
