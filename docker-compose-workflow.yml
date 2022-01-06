@@ -31,7 +31,7 @@ services:
       app_net:
         ipv4_address: 172.30.0.3
     ports:
-      -9005:9005
+      - 9005:9005
   toposoid-sentence-parser-japanese-web:
     image: toposoid/toposoid-sentence-parser-japanese-web:0.1-SNAPSHOT-workflow
     tty: true
@@ -45,7 +45,6 @@ services:
       - 9001:9001
   toposoid-common-nlp-japanese-web:
     image: toposoid/toposoid-common-nlp-japanese-web:0.2-workflow
-    tty: true
     environment:
       - PRIVATE_IP_ADDRESS=172.30.0.5
       - SYNONYM_NOUN_SIMILARITY_THRESHHOLD_JP=0.52
@@ -60,7 +59,6 @@ services:
       - 9006:9006
   toposoid-sentence-parser-english-web:
     image: toposoid/toposoid-sentence-parser-english-web:0.1-SNAPSHOT
-    tty: true
     environment:
       - PRIVATE_IP_ADDRESS=172.30.0.6
       - PLAY_HTTP_PORT=9007
@@ -72,7 +70,6 @@ services:
       - 9007:9007
   toposoid-common-nlp-english-web:
     image: toposoid/toposoid-common-nlp-english-web:0.1-SNAPSHOT
-    tty: true
     environment:
       - PRIVATE_IP_ADDRESS=172.30.0.7
       - SYNONYM_NOUN_SIMILARITY_THRESHHOLD_EN=0.52
