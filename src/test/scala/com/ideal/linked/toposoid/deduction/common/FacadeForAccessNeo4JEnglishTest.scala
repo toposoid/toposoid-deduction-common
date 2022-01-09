@@ -23,19 +23,19 @@ import com.ideal.linked.toposoid.sentence.transformer.neo4j.Sentence2Neo4jTransf
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, DiagrammedAssertions, FlatSpec}
 import play.api.libs.json.Json
 
-class FacadeForAccessNeo4JTest extends FlatSpec with DiagrammedAssertions with BeforeAndAfter with BeforeAndAfterAll{
+class FacadeForAccessNeo4JEnglishTest extends FlatSpec with DiagrammedAssertions with BeforeAndAfter with BeforeAndAfterAll{
 
   override def beforeAll(): Unit = {
     Neo4JAccessor.delete()
-    Sentence2Neo4jTransformer.createGraphAuto(List(Knowledge("案ずるより産むが易し。", "{}" )))
+    Sentence2Neo4jTransformer.createGraphAuto(List(Knowledge("Time is money.","en_US", "{}" )))
   }
 
   override def afterAll(): Unit = {
     Neo4JAccessor.delete()
   }
 
-  "A query" should "be handled properly" in {
-    val query:String = "MATCH (n) RETURN n"
+  "A query for english knowledge" should "be handled properly" in {
+    val query:String = "MATCH (n) WHERE n.lang='en_US' RETURN n"
     val result:String = FacadeForAccessNeo4J.getCypherQueryResult(query, "")
     val neo4jRecords: Neo4jRecords = Json.parse(result).as[Neo4jRecords]
     val sentenceMap: List[(Int, String)] = neo4jRecords.records.reverse.map(record => {
@@ -43,8 +43,9 @@ class FacadeForAccessNeo4JTest extends FlatSpec with DiagrammedAssertions with B
         y.value.logicNode.currentId -> y.value.logicNode.surface
       ).head
     })
-    val sentence: String = sentenceMap.toSeq.sortBy(_._1).foldLeft("") { (acc, x) => acc + x._2 }
-    assert(sentence.equals("案ずるより産むが易し。"))
+    val sentence: String = sentenceMap.toSeq.sortBy(_._1).foldLeft("") { (acc, x) => acc + " " + x._2 }
+    assert(sentence.trim.equals("Time is money ."))
 
   }
+
 }

@@ -1,13 +1,15 @@
-name: Unit Test Action
+name: Unit Test
 on:
   push:
     branches:
       - main
+      - feature
   workflow_dispatch:
 env:
   PJ_ACTOR: toposoid
   PJ_REPO: toposoid-deduction-common
-  PJ_VERSION: 0.1.0
+  PJ_BRANCH: feature
+  PJ_VERSION: 0.2
 jobs:
   unit-test_toposoid-deduction-common:
     runs-on: ubuntu-20.04
@@ -18,9 +20,20 @@ jobs:
             repository: ${{ env.PJ_ACTOR }}/${{ env.PJ_REPO }}
       - name: Execute tests
         run: |
-            docker build --tag ${{ env.PJ_REPO }}:${{ env.PJ_VERSION }} -f Dockerfile-workflow .
-            docker-compose -f docker-compose-workflow.yml up -d
+            docker build --build-arg TARGET_BRANCH=${{ env.PJ_BRANCH }} --tag ${{ env.PJ_REPO }}:${{ env.PJ_VERSION }} -f Dockerfile-workflow .
+            docker-compose -f docker-compose-workflow.yml up -d toposoid-deduction-common
             docker-compose -f docker-compose-workflow.yml exec -T ${{ env.PJ_REPO }} bash -c "cd ${{ env.PJ_REPO }} && sbt headerCheck"
             docker-compose -f docker-compose-workflow.yml exec -T ${{ env.PJ_REPO }} bash -c "cd ${{ env.PJ_REPO }} && sbt test:headerCheck"
             docker-compose -f docker-compose-workflow.yml exec -T ${{ env.PJ_REPO }} bash -c "cd ${{ env.PJ_REPO }} && sbt compile"
-            docker-compose -f docker-compose-workflow.yml exec -T ${{ env.PJ_REPO }} bash -c "cd ${{ env.PJ_REPO }} && sbt test"
+            docker-compose -f docker-compose-workflow.yml up -d neo4j
+            docker-compose -f docker-compose-workflow.yml up -d scala-data-accessor-neo4j-web
+            docker-compose -f docker-compose-workflow.yml up -d toposoid-common-nlp-japanese-web
+            docker-compose -f docker-compose-workflow.yml up -d toposoid-sentence-parser-japanese-web
+            docker-compose -f docker-compose-workflow.yml exec -T ${{ env.PJ_REPO }} bash -c "cd ${{ env.PJ_REPO }} && sbt 'testOnly **.*JapaneseTest'"
+            docker-compose -f docker-compose-workflow.yml rm -fsv toposoid-common-nlp-japanese-web
+            docker-compose -f docker-compose-workflow.yml rm -fsv toposoid-sentence-parser-japanese-web
+            docker-compose -f docker-compose-workflow.yml up -d corenlp
+            docker-compose -f docker-compose-workflow.yml up -d toposoid-common-nlp-english-web
+            docker-compose -f docker-compose-workflow.yml up -d toposoid-sentence-parser-english-web
+            docker-compose -f docker-compose-workflow.yml exec -T ${{ env.PJ_REPO }} bash -c "cd ${{ env.PJ_REPO }} && sbt 'testOnly **.*EnglishTest'"
+
