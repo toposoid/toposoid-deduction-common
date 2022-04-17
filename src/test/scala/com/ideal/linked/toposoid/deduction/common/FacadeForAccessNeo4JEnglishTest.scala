@@ -27,7 +27,7 @@ class FacadeForAccessNeo4JEnglishTest extends FlatSpec with DiagrammedAssertions
 
   override def beforeAll(): Unit = {
     Neo4JAccessor.delete()
-    Sentence2Neo4jTransformer.createGraphAuto(List(Knowledge("Time is money.","en_US", "{}" )))
+    Sentence2Neo4jTransformer.createGraphAuto(List(Knowledge("Time is money.","en_US", "{}", false )))
   }
 
   override def afterAll(): Unit = {
