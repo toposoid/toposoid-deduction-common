@@ -17,7 +17,7 @@
 package com.ideal.linked.toposoid.deduction.common
 
 import com.ideal.linked.data.accessor.neo4j.Neo4JAccessor
-import com.ideal.linked.toposoid.knowledgebase.regist.model.Knowledge
+import com.ideal.linked.toposoid.knowledgebase.regist.model.{Knowledge, KnowledgeSentenceSet, PropositionRelation}
 import com.ideal.linked.toposoid.protocol.model.base.AnalyzedSentenceObject
 import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
 import com.ideal.linked.toposoid.sentence.transformer.neo4j.Sentence2Neo4jTransformer
@@ -55,6 +55,20 @@ class FacadeForAccessNeo4JEnglishTest extends FlatSpec with DiagrammedAssertions
     Sentence2Neo4jTransformer.createGraphAuto(List(propositionId), List(Knowledge("Time is money.","en_US", "{}", false )))
     val aso:AnalyzedSentenceObject = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1)
     assert(AnalyzedSentenceObjectUtils.makeSentence(aso)._1.get(1).get == "Time is money .")
+  }
+
+  "havePremiseNode" should "be handled properly" in {
+    val propositionId1 =  UUID.random.toString
+    Sentence2Neo4jTransformer.createGraphAuto(List(propositionId1), List(Knowledge("Time is money.","en_US", "{}", false )))
+    assert(FacadeForAccessNeo4J.havePremiseNode(propositionId1) == false)
+    val propositionId2 =  UUID.random.toString
+    val knowledgeSentenceSet = KnowledgeSentenceSet(
+      List(Knowledge("Fear often exaggerates danger.","en_US", "{}")),
+      List.empty[PropositionRelation],
+      List(Knowledge("Grasp Fortune by the forelock.","en_US", "{}")),
+      List.empty[PropositionRelation])
+    Sentence2Neo4jTransformer.createGraph(propositionId2, knowledgeSentenceSet)
+    assert(FacadeForAccessNeo4J.havePremiseNode(propositionId2) == true)
   }
 
 
