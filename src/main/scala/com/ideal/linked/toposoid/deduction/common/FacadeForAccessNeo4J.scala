@@ -52,7 +52,28 @@ object FacadeForAccessNeo4J extends LazyLogging{
     case Failure(e) => throw e
   }
 
+  /**
+   *
+   * @param propositionId
+   * @return
+   */
+  def havePremiseNode(propositionId:String):Boolean = Try{
+    val query = "MATCH (m:PremiseNode)-[e:LogicEdge]-(n:ClaimNode) WHERE n.propositionId='%s' return m, e, n".format(propositionId)
+    val jsonStr:String = getCypherQueryResult(query, "")
+    if(jsonStr.equals("""{"records":[]}""")) false
+    else true
+  }match {
+    case Success(s) => s
+    case Failure(e) => throw e
+  }
 
+
+  /**
+   *
+   * @param propositionId
+   * @param sentenceType
+   * @return
+   */
   def neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId:String, sentenceType:Int):AnalyzedSentenceObject = Try{
     val nodeType:String = ToposoidUtils.getNodeType(sentenceType)
     val query = "MATCH (n1:%s)-[e]->(n2:%s) WHERE n1.propositionId='%s' AND n2.propositionId='%s' RETURN n1, e, n2".format(nodeType, nodeType, propositionId, propositionId)
