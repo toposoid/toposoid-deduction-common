@@ -18,6 +18,7 @@ package com.ideal.linked.toposoid.deduction.common
 
 import com.ideal.linked.data.accessor.neo4j.Neo4JAccessor
 import com.ideal.linked.toposoid.knowledgebase.regist.model.Knowledge
+import com.ideal.linked.toposoid.protocol.model.base.AnalyzedSentenceObject
 import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
 import com.ideal.linked.toposoid.sentence.transformer.neo4j.Sentence2Neo4jTransformer
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, DiagrammedAssertions, FlatSpec}
@@ -48,5 +49,13 @@ class FacadeForAccessNeo4JEnglishTest extends FlatSpec with DiagrammedAssertions
     assert(sentence.trim.equals("Time is money ."))
 
   }
+
+  "Neo4j data" should "be properly converted to AnalyzedSentenceObject Type" in {
+    val propositionId =  UUID.random.toString
+    Sentence2Neo4jTransformer.createGraphAuto(List(propositionId), List(Knowledge("Time is money.","en_US", "{}", false )))
+    val aso:AnalyzedSentenceObject = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1)
+    assert(AnalyzedSentenceObjectUtils.makeSentence(aso)._1.get(1).get == "Time is money .")
+  }
+
 
 }
