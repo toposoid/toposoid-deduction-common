@@ -54,7 +54,7 @@ class FacadeForAccessNeo4JJapaneseTest extends FlatSpec with DiagrammedAssertion
     val propositionId =  UUID.random.toString
     Sentence2Neo4jTransformer.createGraphAuto(List(propositionId), List(Knowledge("案ずるより産むが易し。", "ja_JP", "{}", false )))
     val aso:AnalyzedSentenceObject = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1)
-    assert(AnalyzedSentenceObjectUtils.makeSentence(aso)._1.get(1).get == "案ずるより産むが易し。")
+    assert(AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get._1 == "案ずるより産むが易し。")
   }
 
   "havePremiseNode" should "be handled properly" in {
