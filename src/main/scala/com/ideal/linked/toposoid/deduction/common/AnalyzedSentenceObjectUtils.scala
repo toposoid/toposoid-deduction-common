@@ -39,8 +39,8 @@ object AnalyzedSentenceObjectUtils {
         val premiseSentence:(String, String) = acc.get(PREMISE.index).getOrElse(("", ""))
         val claimSentence:(String, String) = acc.get(CLAIM.index).getOrElse(("", ""))
         val sentenceMap:Map[Int, (String, String)] = surfaceTuple._2._2 match {
-          case PREMISE.index => Map(PREMISE.index -> ((premiseSentence._1 + space + surfaceTuple._2._1).trim, premiseSentence._2))
-          case CLAIM.index => Map(CLAIM.index -> ((claimSentence._1 + space + surfaceTuple._2._1).trim, claimSentence._2))
+          case PREMISE.index => Map(PREMISE.index -> ((premiseSentence._1 + space + surfaceTuple._2._1).trim, surfaceTuple._2._3))
+          case CLAIM.index => Map(CLAIM.index -> ((claimSentence._1 + space + surfaceTuple._2._1).trim, surfaceTuple._2._3))
           case _ => acc
         }
         acc ++ sentenceMap
