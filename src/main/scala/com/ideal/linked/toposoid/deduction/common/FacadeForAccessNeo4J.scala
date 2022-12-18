@@ -191,7 +191,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
    * @param record
    * @return
    */
-  private def existALlPropositionIdEqualId(id:String, record:List[Neo4jRecordMap]):Boolean = Try{
+  def existALlPropositionIdEqualId(id:String, record:List[Neo4jRecordMap]):Boolean = Try{
     if(record.size > 0){
       record.foreach { map: Neo4jRecordMap =>
         if (map.value.logicNode.propositionId.equals(id)) {
