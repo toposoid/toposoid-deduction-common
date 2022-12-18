@@ -27,7 +27,7 @@ import com.ideal.linked.common.DeploymentConverter.conf
 import com.ideal.linked.toposoid.common.{CLAIM, PREMISE, ToposoidUtils}
 import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode}
 import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, DeductionResult}
-import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
+import com.ideal.linked.toposoid.protocol.model.neo4j.{Neo4jRecordMap, Neo4jRecords}
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.util.{Failure, Success, Try}
@@ -184,4 +184,24 @@ object FacadeForAccessNeo4J extends LazyLogging{
     }
     queryResultJson
   }
+
+  /**
+   * This function checks if there is a result with only the specified ID
+   * @param id
+   * @param record
+   * @return
+   */
+  private def existALlPropositionIdEqualId(id:String, record:List[Neo4jRecordMap]):Boolean = Try{
+    if(record.size > 0){
+      record.foreach { map: Neo4jRecordMap =>
+        if (map.value.logicNode.propositionId.equals(id)) {
+          return true
+        }
+      }
+    }
+    return false
+  }match {
+    case Failure(e) => throw e
+  }
+
 }
