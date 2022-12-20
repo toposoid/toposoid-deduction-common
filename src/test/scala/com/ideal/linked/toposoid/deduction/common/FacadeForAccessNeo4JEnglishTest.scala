@@ -52,9 +52,13 @@ class FacadeForAccessNeo4JEnglishTest extends FlatSpec with DiagrammedAssertions
 
   "Neo4j data" should "be properly converted to AnalyzedSentenceObject Type" in {
     val propositionId =  UUID.random.toString
-    Sentence2Neo4jTransformer.createGraphAuto(List(propositionId), List(Knowledge("Time is money.","en_US", "{}", false )))
-    val aso:AnalyzedSentenceObject = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1)
-    assert(AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get._1 == "Time is money .")
+    Sentence2Neo4jTransformer.createGraphAuto(List(propositionId, propositionId), List(Knowledge("Time is money.","en_US", "{}", false ), Knowledge("Fear often exaggerates danger.","en_US", "{}")))
+    val asos = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1)
+    assert(asos.analyzedSentenceObjects.size == 2)
+    asos.analyzedSentenceObjects.foreach(aso => {
+      assert(AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get._1 == "Time is money ." || AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get._1 == "Fear often exaggerates danger .")
+    })
+
   }
 
   "havePremiseNode" should "be handled properly" in {
