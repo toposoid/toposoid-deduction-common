@@ -56,7 +56,7 @@ class FacadeForAccessNeo4JEnglishTest extends FlatSpec with DiagrammedAssertions
     val asos = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1)
     assert(asos.analyzedSentenceObjects.size == 2)
     asos.analyzedSentenceObjects.foreach(aso => {
-      assert(AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get._1 == "Time is money ." || AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get._1 == "Fear often exaggerates danger .")
+      assert(AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get.sentence == "Time is money ." || AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get.sentence == "Fear often exaggerates danger .")
     })
 
   }

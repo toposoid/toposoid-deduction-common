@@ -22,8 +22,13 @@ import com.ideal.linked.toposoid.protocol.model.base.AnalyzedSentenceObject
 /**
  *　Utilities for AnalyzedSentenceObject
  */
+case class SentenceInfo(sentence:String, lang:String, sentenceId:String, propositionId:String)
+
 object AnalyzedSentenceObjectUtils {
-  def makeSentence(aso: AnalyzedSentenceObject): Map[Int, (String, String)] ={
+
+  def makeSentence(aso: AnalyzedSentenceObject): Map[Int, SentenceInfo] ={
+    val propositionId = aso.nodeMap.head._2.propositionId
+    val sentenceId = aso.nodeMap.head._2.nodeId.substring(0, aso.nodeMap.head._2.nodeId.lastIndexOf("-"))
     val surfaces:Map[Int, (String, Int, String)] = aso.nodeMap.map(node => {
       (node._2.currentId -> (node._2.surface, aso.sentenceType, node._2.lang))
     })
@@ -34,13 +39,13 @@ object AnalyzedSentenceObjectUtils {
       case _ => " "
     }
 
-    val sentenceMap = surfaces.toSeq.sortBy(_._1).foldLeft(Map.empty[Int, (String, String)]){
+    val sentenceMap = surfaces.toSeq.sortBy(_._1).foldLeft(Map.empty[Int, SentenceInfo]){
       (acc, surfaceTuple) =>{
-        val premiseSentence:(String, String) = acc.get(PREMISE.index).getOrElse(("", ""))
-        val claimSentence:(String, String) = acc.get(CLAIM.index).getOrElse(("", ""))
-        val sentenceMap:Map[Int, (String, String)] = surfaceTuple._2._2 match {
-          case PREMISE.index => Map(PREMISE.index -> ((premiseSentence._1 + space + surfaceTuple._2._1).trim, surfaceTuple._2._3))
-          case CLAIM.index => Map(CLAIM.index -> ((claimSentence._1 + space + surfaceTuple._2._1).trim, surfaceTuple._2._3))
+        val premiseSentence:SentenceInfo = acc.get(PREMISE.index).getOrElse(SentenceInfo("","", "", ""))
+        val claimSentence:SentenceInfo = acc.get(CLAIM.index).getOrElse(SentenceInfo("", "", "", ""))
+        val sentenceMap:Map[Int, SentenceInfo] = surfaceTuple._2._2 match {
+          case PREMISE.index => Map(PREMISE.index -> SentenceInfo((premiseSentence.sentence + space + surfaceTuple._2._1).trim, surfaceTuple._2._3, sentenceId, propositionId))
+          case CLAIM.index => Map(CLAIM.index -> SentenceInfo((claimSentence.sentence + space + surfaceTuple._2._1).trim, surfaceTuple._2._3, sentenceId, propositionId))
           case _ => acc
         }
         acc ++ sentenceMap
@@ -48,4 +53,33 @@ object AnalyzedSentenceObjectUtils {
     }
     sentenceMap
   }
+  /*
+  def makeSentence(aso: AnalyzedSentenceObject): Map[Int, (String, String, String)] ={
+
+    val sentenceId = aso.nodeMap.head._2.nodeId.substring(0, aso.nodeMap.head._2.nodeId.lastIndexOf("-"))
+    val surfaces:Map[Int, (String, Int, String)] = aso.nodeMap.map(node => {
+      (node._2.currentId -> (node._2.surface, aso.sentenceType, node._2.lang))
+    })
+
+    val space = aso.nodeMap.head._2.lang match {
+      case "ja_JP" => ""
+      case "en_US" => " "
+      case _ => " "
+    }
+
+    val sentenceMap = surfaces.toSeq.sortBy(_._1).foldLeft(Map.empty[Int, (String, String, String)]){
+      (acc, surfaceTuple) =>{
+        val premiseSentence:(String, String, String) = acc.get(PREMISE.index).getOrElse(("", "", ""))
+        val claimSentence:(String, String, String) = acc.get(CLAIM.index).getOrElse(("", "", ""))
+        val sentenceMap:Map[Int, (String, String, String)] = surfaceTuple._2._2 match {
+          case PREMISE.index => Map(PREMISE.index -> ((premiseSentence._1 + space + surfaceTuple._2._1).trim, surfaceTuple._2._3, sentenceId))
+          case CLAIM.index => Map(CLAIM.index -> ((claimSentence._1 + space + surfaceTuple._2._1).trim, surfaceTuple._2._3, sentenceId))
+          case _ => acc
+        }
+        acc ++ sentenceMap
+      }
+    }
+    sentenceMap
+  }
+   */
 }
