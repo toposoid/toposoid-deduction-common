@@ -28,7 +28,7 @@ object AnalyzedSentenceObjectUtils {
 
   def makeSentence(aso: AnalyzedSentenceObject): Map[Int, SentenceInfo] ={
     val propositionId = aso.nodeMap.head._2.propositionId
-    val sentenceId = aso.nodeMap.head._2.nodeId.substring(0, aso.nodeMap.head._2.nodeId.lastIndexOf("-"))
+    val sentenceId = aso.sentenceId
     val surfaces:Map[Int, (String, Int, String)] = aso.nodeMap.map(node => {
       (node._2.currentId -> (node._2.surface, aso.sentenceType, node._2.lang))
     })
