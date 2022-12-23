@@ -148,7 +148,9 @@ object FacadeForAccessNeo4J extends LazyLogging{
         CLAIM.index.toString -> DeductionResult(false, List.empty[String],"")
       )
     val asoList = neo4jDataInfo.map(x => {
-      AnalyzedSentenceObject(x._2._1, x._2._2, sentenceType, deductionResult)
+      val sentenceId = x._2._1.head._2.nodeId.substring(0, x._2._1.head._2.nodeId.lastIndexOf("-"))
+      val lang = x._2._1.head._2.lang
+      AnalyzedSentenceObject(x._2._1, x._2._2, sentenceType, sentenceId, lang,  deductionResult)
     }).toList
     AnalyzedSentenceObjects(asoList)
 

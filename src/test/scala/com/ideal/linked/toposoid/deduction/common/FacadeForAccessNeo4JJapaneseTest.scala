@@ -20,6 +20,7 @@ import com.ideal.linked.data.accessor.neo4j.Neo4JAccessor
 import com.ideal.linked.toposoid.knowledgebase.regist.model.{Knowledge, KnowledgeSentenceSet, PropositionRelation}
 import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects}
 import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
+import com.ideal.linked.toposoid.protocol.model.parser.{KnowledgeForParser, KnowledgeSentenceSetForParser}
 import com.ideal.linked.toposoid.sentence.transformer.neo4j.Sentence2Neo4jTransformer
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, DiagrammedAssertions, FlatSpec}
 import play.api.libs.json.Json
@@ -29,7 +30,7 @@ class FacadeForAccessNeo4JJapaneseTest extends FlatSpec with DiagrammedAssertion
 
   override def beforeAll(): Unit = {
     Neo4JAccessor.delete()
-    Sentence2Neo4jTransformer.createGraphAuto(List(UUID.random.toString), List(Knowledge("案ずるより産むが易し。", "ja_JP", "{}", false )))
+    Sentence2Neo4jTransformer.createGraphAuto(List(KnowledgeForParser(UUID.random.toString, UUID.random.toString, Knowledge("案ずるより産むが易し。", "ja_JP", "{}", false ))))
   }
 
   override def afterAll(): Unit = {
@@ -52,7 +53,10 @@ class FacadeForAccessNeo4JJapaneseTest extends FlatSpec with DiagrammedAssertion
 
   "Neo4j data" should "be properly converted to AnalyzedSentenceObject Type" in {
     val propositionId =  UUID.random.toString
-    Sentence2Neo4jTransformer.createGraphAuto(List(propositionId, propositionId), List(Knowledge("案ずるより産むが易し。", "ja_JP", "{}", false ), Knowledge("思い立ったが吉日。", "ja_JP", "{}", false )))
+    val sentenceId1 =  UUID.random.toString
+    val sentenceId2 =  UUID.random.toString
+
+    Sentence2Neo4jTransformer.createGraphAuto(List(KnowledgeForParser(propositionId, sentenceId1, Knowledge("案ずるより産むが易し。", "ja_JP", "{}", false )), KnowledgeForParser(propositionId, sentenceId2, Knowledge("思い立ったが吉日。", "ja_JP", "{}", false ))))
     val asos:AnalyzedSentenceObjects = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1)
     assert(asos.analyzedSentenceObjects.size == 2)
     asos.analyzedSentenceObjects.foreach(aso => {
@@ -62,15 +66,18 @@ class FacadeForAccessNeo4JJapaneseTest extends FlatSpec with DiagrammedAssertion
 
   "havePremiseNode" should "be handled properly" in {
     val propositionId1 =  UUID.random.toString
-    Sentence2Neo4jTransformer.createGraphAuto(List(propositionId1), List(Knowledge("案ずるより産むが易し。", "ja_JP", "{}", false )))
+    val sentenceId1 = UUID.random.toString
+    Sentence2Neo4jTransformer.createGraphAuto(List(KnowledgeForParser(propositionId1, sentenceId1, Knowledge("案ずるより産むが易し。", "ja_JP", "{}", false ))))
     assert(FacadeForAccessNeo4J.havePremiseNode(propositionId1) == false)
     val propositionId2 =  UUID.random.toString
-    val knowledgeSentenceSet = KnowledgeSentenceSet(
-      List(Knowledge("案ずるより産むが易し。","ja_JP", "{}")),
+    val sentenceId2 = UUID.random.toString
+    val sentenceId3 = UUID.random.toString
+    val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
+      List(KnowledgeForParser(propositionId2, sentenceId2, Knowledge("案ずるより産むが易し。","ja_JP", "{}"))),
       List.empty[PropositionRelation],
-      List(Knowledge("思い立ったが吉日。","ja_JP", "{}")),
+      List(KnowledgeForParser(propositionId2, sentenceId3, Knowledge("思い立ったが吉日。","ja_JP", "{}"))),
       List.empty[PropositionRelation])
-    Sentence2Neo4jTransformer.createGraph(propositionId2, knowledgeSentenceSet)
+    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
     assert(FacadeForAccessNeo4J.havePremiseNode(propositionId2) == true)
   }
 
