@@ -64,6 +64,41 @@ class FacadeForAccessNeo4JJapaneseTest extends FlatSpec with DiagrammedAssertion
     })
   }
 
+  "Neo4j data with logic relation" should "be properly converted to AnalyzedSentenceObject Type" in {
+    val propositionId =  UUID.random.toString
+    val sentenceId1 =  UUID.random.toString
+    val sentenceId2 =  UUID.random.toString
+    val sentenceId3 =  UUID.random.toString
+    val sentenceId4 =  UUID.random.toString
+
+    val sentenceA = "案ずるより産むが易し。"
+    val sentenceB = "思い立ったが吉日。"
+    val sentenceC = "時は金なり。"
+    val sentenceD = "人事を尽くして天命を待つ。"
+    val knowledge1 = Knowledge(sentenceA,"ja_JP", "{}", false)
+    val knowledge2 = Knowledge(sentenceB,"ja_JP", "{}", false)
+    val knowledge3 = Knowledge(sentenceC,"ja_JP", "{}", false)
+    val knowledge4 = Knowledge(sentenceD,"ja_JP", "{}", false)
+
+    val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
+      List(KnowledgeForParser(propositionId, sentenceId1, knowledge1), KnowledgeForParser(propositionId, sentenceId2, knowledge2)),
+      List(PropositionRelation("AND", 0,1)),
+      List(KnowledgeForParser(propositionId, sentenceId3, knowledge3), KnowledgeForParser(propositionId, sentenceId4, knowledge4)),
+      List(PropositionRelation("AND", 0,1)))
+    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
+    val asos1:AnalyzedSentenceObjects = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 0)
+    val asos2:AnalyzedSentenceObjects = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1)
+    assert(asos1.analyzedSentenceObjects.size == 2)
+    asos1.analyzedSentenceObjects.foreach(aso => {
+      assert(AnalyzedSentenceObjectUtils.makeSentence(aso).get(0).get.sentence == "案ずるより産むが易し。" || AnalyzedSentenceObjectUtils.makeSentence(aso).get(0).get.sentence == "思い立ったが吉日。")
+    })
+    assert(asos2.analyzedSentenceObjects.size == 2)
+    asos2.analyzedSentenceObjects.foreach(aso => {
+      assert(AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get.sentence == "時は金なり。" || AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get.sentence == "人事を尽くして天命を待つ。")
+    })
+  }
+
+
   "havePremiseNode" should "be handled properly" in {
     val propositionId1 =  UUID.random.toString
     val sentenceId1 = UUID.random.toString

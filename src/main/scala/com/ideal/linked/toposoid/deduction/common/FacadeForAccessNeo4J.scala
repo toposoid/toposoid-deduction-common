@@ -83,63 +83,69 @@ object FacadeForAccessNeo4J extends LazyLogging{
     val neo4jDataInfo = neo4jRecords.records.foldLeft(Map.empty[String, (Map[String, KnowledgeBaseNode], List[KnowledgeBaseEdge])]){
       (acc, x) =>{
         val node1:KnowledgeBaseNode = x(0).value.logicNode
-        val key = node1.nodeId.substring(0, node1.nodeId.lastIndexOf("-"))
-        val knowledgeBaseNode1 = KnowledgeBaseNode(
-          node1.nodeId,
-          node1.propositionId,
-          node1.currentId,
-          node1.parentId,
-          node1.isMainSection,
-          node1.surface,
-          node1.normalizedName,
-          node1.dependType,
-          node1.caseType,
-          node1.namedEntity,
-          node1.rangeExpressions,
-          node1.categories,
-          node1.domains,
-          node1.isDenialWord,
-          node1.isConditionalConnection,
-          node1.normalizedNameYomi,
-          node1.surfaceYomi,
-          node1.modalityType,
-          node1.logicType,
-          node1.nodeType,
-          node1.lang)
-
         val node2:KnowledgeBaseNode = x(2).value.logicNode
-        val knowledgeBaseNode2 = KnowledgeBaseNode(
-          node2.nodeId,
-          node2.propositionId,
-          node2.currentId,
-          node2.parentId,
-          node2.isMainSection,
-          node2.surface,
-          node2.normalizedName,
-          node2.dependType,
-          node2.caseType,
-          node2.namedEntity,
-          node2.rangeExpressions,
-          node2.categories,
-          node2.domains,
-          node2.isDenialWord,
-          node2.isConditionalConnection,
-          node2.normalizedNameYomi,
-          node2.surfaceYomi,
-          node2.modalityType,
-          node2.logicType,
-          node2.nodeType,
-          node2.lang)
-        val edge:KnowledgeBaseEdge = x(1).value.logicEdge
-        val logicEdge:KnowledgeBaseEdge = KnowledgeBaseEdge(node1.nodeId,node2.nodeId, edge.caseStr, edge.dependType, edge.logicType, edge.lang)
 
-        val dataInfo:(Map[String, KnowledgeBaseNode], List[KnowledgeBaseEdge]) = acc.isDefinedAt(key) match {
-          case true => acc.get(key).get
-          case _ => (Map.empty[String, KnowledgeBaseNode], List.empty[KnowledgeBaseEdge])
+        val key = node1.nodeId.substring(0, node1.nodeId.lastIndexOf("-"))
+        val key2 = node2.nodeId.substring(0, node2.nodeId.lastIndexOf("-"))
+        if (!key.equals(key2)) {
+          acc
+        }else{
+          val knowledgeBaseNode1 = KnowledgeBaseNode(
+            node1.nodeId,
+            node1.propositionId,
+            node1.currentId,
+            node1.parentId,
+            node1.isMainSection,
+            node1.surface,
+            node1.normalizedName,
+            node1.dependType,
+            node1.caseType,
+            node1.namedEntity,
+            node1.rangeExpressions,
+            node1.categories,
+            node1.domains,
+            node1.isDenialWord,
+            node1.isConditionalConnection,
+            node1.normalizedNameYomi,
+            node1.surfaceYomi,
+            node1.modalityType,
+            node1.logicType,
+            node1.nodeType,
+            node1.lang)
+
+          val knowledgeBaseNode2 = KnowledgeBaseNode(
+            node2.nodeId,
+            node2.propositionId,
+            node2.currentId,
+            node2.parentId,
+            node2.isMainSection,
+            node2.surface,
+            node2.normalizedName,
+            node2.dependType,
+            node2.caseType,
+            node2.namedEntity,
+            node2.rangeExpressions,
+            node2.categories,
+            node2.domains,
+            node2.isDenialWord,
+            node2.isConditionalConnection,
+            node2.normalizedNameYomi,
+            node2.surfaceYomi,
+            node2.modalityType,
+            node2.logicType,
+            node2.nodeType,
+            node2.lang)
+          val edge:KnowledgeBaseEdge = x(1).value.logicEdge
+          val logicEdge:KnowledgeBaseEdge = KnowledgeBaseEdge(node1.nodeId,node2.nodeId, edge.caseStr, edge.dependType, edge.logicType, edge.lang)
+
+          val dataInfo:(Map[String, KnowledgeBaseNode], List[KnowledgeBaseEdge]) = acc.isDefinedAt(key) match {
+            case true => acc.get(key).get
+            case _ => (Map.empty[String, KnowledgeBaseNode], List.empty[KnowledgeBaseEdge])
+          }
+
+          val nodeAndEdgeInfo:(Map[String, KnowledgeBaseNode], List[KnowledgeBaseEdge]) = (dataInfo._1 ++ Map(node1.nodeId -> knowledgeBaseNode1) ++ Map(node2.nodeId -> knowledgeBaseNode2), dataInfo._2 :+ logicEdge)
+          acc ++ Map(key -> nodeAndEdgeInfo)
         }
-
-        val nodeAndEdgeInfo:(Map[String, KnowledgeBaseNode], List[KnowledgeBaseEdge]) = (dataInfo._1 ++ Map(node1.nodeId -> knowledgeBaseNode1) ++ Map(node2.nodeId -> knowledgeBaseNode2), dataInfo._2 :+ logicEdge)
-        acc ++ Map(key -> nodeAndEdgeInfo)
       }
     }
     val deductionResult:Map[String, DeductionResult] =
