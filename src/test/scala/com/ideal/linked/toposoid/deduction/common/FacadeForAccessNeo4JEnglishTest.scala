@@ -27,9 +27,19 @@ import io.jvm.uuid.UUID
 
 class FacadeForAccessNeo4JEnglishTest extends FlatSpec with DiagrammedAssertions with BeforeAndAfter with BeforeAndAfterAll{
 
+  def registSingleClaim(knowledgeForParser:KnowledgeForParser): Unit = {
+    val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
+      List.empty[KnowledgeForParser],
+      List.empty[PropositionRelation],
+      List(knowledgeForParser),
+      List.empty[PropositionRelation])
+    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
+  }
+
   override def beforeAll(): Unit = {
     Neo4JAccessor.delete()
-    Sentence2Neo4jTransformer.createGraphAuto(List(KnowledgeForParser(UUID.random.toString, UUID.random.toString, Knowledge("Time is money.","en_US", "{}", false ))))
+    val knowledgeForParser = KnowledgeForParser(UUID.random.toString, UUID.random.toString, Knowledge("Time is money.","en_US", "{}", false ))
+    registSingleClaim(knowledgeForParser)
   }
 
   override def afterAll(): Unit = {
@@ -55,7 +65,12 @@ class FacadeForAccessNeo4JEnglishTest extends FlatSpec with DiagrammedAssertions
     val sentenceId1 =  UUID.random.toString
     val sentenceId2 =  UUID.random.toString
 
-    Sentence2Neo4jTransformer.createGraphAuto(List(KnowledgeForParser(propositionId, sentenceId1, Knowledge("Time is money.","en_US", "{}", false )), KnowledgeForParser(propositionId, sentenceId2, Knowledge("Fear often exaggerates danger.","en_US", "{}"))))
+    val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
+      List.empty[KnowledgeForParser],
+      List.empty[PropositionRelation],
+      List(KnowledgeForParser(propositionId, sentenceId1, Knowledge("Time is money.","en_US", "{}", false )), KnowledgeForParser(propositionId, sentenceId2, Knowledge("Fear often exaggerates danger.","en_US", "{}", false ))),
+      List.empty[PropositionRelation])
+    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
     val asos = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1)
     assert(asos.analyzedSentenceObjects.size == 2)
     asos.analyzedSentenceObjects.foreach(aso => {
@@ -67,7 +82,8 @@ class FacadeForAccessNeo4JEnglishTest extends FlatSpec with DiagrammedAssertions
   "havePremiseNode" should "be handled properly" in {
     val propositionId1 =  UUID.random.toString
     val sentenceId1 = UUID.random.toString
-    Sentence2Neo4jTransformer.createGraphAuto(List(KnowledgeForParser(propositionId1, sentenceId1, Knowledge("Time is money.","en_US", "{}", false ))))
+    val knowledgeForParser = KnowledgeForParser(propositionId1, sentenceId1, Knowledge("Time is money.","en_US", "{}", false ))
+    registSingleClaim(knowledgeForParser)
     assert(FacadeForAccessNeo4J.havePremiseNode(propositionId1) == false)
     val propositionId2 =  UUID.random.toString
     val sentenceId2 = UUID.random.toString
