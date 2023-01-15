@@ -8,6 +8,14 @@ In particular, this module is used by units that perform deductive reasoning in 
 ## Requirements
 * Scala version 2.12.x,
 * Sbt version 1.2.8
+* The following microservices must be running
+> toposoid/toposoid-sentence-parser-japanese-web
+> toposoid/toposoid-common-nlp-japanese-web
+> toposoid/toposoid-sentence-parser-english-web
+> toposoid/toposoid-common-nlp-english-web
+> toposoid/corenlp:3.4.2-workflow
+> toposoid/scala-data-accessor-neo4j-web
+> neo4j:4.1.3
 
 ## Setup
 ```bssh
@@ -15,7 +23,10 @@ sbt publishLocal
 ```
 ## Usage
 ```scala
+//Defines convenient functions to access and extract information from Neo4j data during inference
 import com.ideal.linked.toposoid.deduction.common.FacadeForAccessNeo4J._
+//Define convenience functions for parsed data of propositions during inference
+import com.ideal.linked.toposoid.deduction.common.AnalyzedSentenceObjectUtils._
 ```
 
 # Note
