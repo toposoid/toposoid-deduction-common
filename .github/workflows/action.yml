@@ -9,13 +9,13 @@ env:
   PJ_ACTOR: toposoid
   PJ_REPO: toposoid-deduction-common
   PJ_BRANCH: feature
-  PJ_VERSION: 0.3
+  PJ_VERSION: 0.4
 jobs:
   unit-test_toposoid-deduction-common:
     runs-on: ubuntu-20.04
     steps:
       - name: Clone ${{ env.PJ_REPO }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
             repository: ${{ env.PJ_ACTOR }}/${{ env.PJ_REPO }}
       - name: Execute tests
@@ -32,6 +32,10 @@ jobs:
             docker-compose -f docker-compose-workflow.yml exec -T ${{ env.PJ_REPO }} bash -c "cd ${{ env.PJ_REPO }} && sbt 'testOnly **.*JapaneseTest'"
             docker-compose -f docker-compose-workflow.yml rm -fsv toposoid-common-nlp-japanese-web
             docker-compose -f docker-compose-workflow.yml rm -fsv toposoid-sentence-parser-japanese-web
+            docker rmi --force toposoid/toposoid-sentence-parser-japanese-web:${{ env.PJ_VERSION }}-workflow
+            docker rmi --force toposoid/toposoid-common-nlp-japanese-web:${{ env.PJ_VERSION }}-workflow
+            docker system prune -f
+            docker volume prune -f
             docker-compose -f docker-compose-workflow.yml up -d corenlp
             docker-compose -f docker-compose-workflow.yml up -d toposoid-common-nlp-english-web
             docker-compose -f docker-compose-workflow.yml up -d toposoid-sentence-parser-english-web

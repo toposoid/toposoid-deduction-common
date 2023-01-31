@@ -2,19 +2,20 @@ import Dependencies._
 import sbt.Keys.libraryDependencies
 
 ThisBuild / scalaVersion     := "2.12.12"
-ThisBuild / version          := "0.3"
+ThisBuild / version          := "0.4"
 ThisBuild / organization     := "com.ideal.linked"
 
 lazy val root = (project in file("."))
   .settings(
     name := "toposoid-deduction-common",
-    libraryDependencies += "com.ideal.linked" %% "scala-common" % "0.3",
-    libraryDependencies += "com.ideal.linked" %% "toposoid-deduction-protocol-model" % "0.3",
+    libraryDependencies += "com.ideal.linked" %% "scala-common" % "0.4",
+    libraryDependencies += "com.ideal.linked" %% "toposoid-deduction-protocol-model" % "0.4",
+      libraryDependencies += "com.ideal.linked" %% "toposoid-common" % "0.4",
     libraryDependencies += "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.14",
     libraryDependencies += "com.typesafe.akka" %% "akka-stream" % "2.5.31",
     libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test,
-    libraryDependencies += "com.ideal.linked" %% "toposoid-sentence-transformer-neo4j" % "0.3" % Test
-
+    libraryDependencies += "com.ideal.linked" %% "toposoid-sentence-transformer-neo4j" % "0.4" % Test,
+    libraryDependencies += "io.jvm.uuid" %% "scala-uuid" % "0.3.1" % Test
   )
   .enablePlugins(AutomateHeaderPlugin)
 

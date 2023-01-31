@@ -17,17 +17,29 @@
 package com.ideal.linked.toposoid.deduction.common
 
 import com.ideal.linked.data.accessor.neo4j.Neo4JAccessor
-import com.ideal.linked.toposoid.knowledgebase.regist.model.Knowledge
+import com.ideal.linked.toposoid.knowledgebase.regist.model.{Knowledge, PropositionRelation}
 import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
+import com.ideal.linked.toposoid.protocol.model.parser.{KnowledgeForParser, KnowledgeSentenceSetForParser}
 import com.ideal.linked.toposoid.sentence.transformer.neo4j.Sentence2Neo4jTransformer
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, DiagrammedAssertions, FlatSpec}
 import play.api.libs.json.Json
+import io.jvm.uuid.UUID
 
 class FacadeForAccessNeo4JEnglishTest extends FlatSpec with DiagrammedAssertions with BeforeAndAfter with BeforeAndAfterAll{
 
+  def registSingleClaim(knowledgeForParser:KnowledgeForParser): Unit = {
+    val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
+      List.empty[KnowledgeForParser],
+      List.empty[PropositionRelation],
+      List(knowledgeForParser),
+      List.empty[PropositionRelation])
+    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
+  }
+
   override def beforeAll(): Unit = {
     Neo4JAccessor.delete()
-    Sentence2Neo4jTransformer.createGraphAuto(List(Knowledge("Time is money.","en_US", "{}", false )))
+    val knowledgeForParser = KnowledgeForParser(UUID.random.toString, UUID.random.toString, Knowledge("Time is money.","en_US", "{}", false ))
+    registSingleClaim(knowledgeForParser)
   }
 
   override def afterAll(): Unit = {
@@ -47,5 +59,44 @@ class FacadeForAccessNeo4JEnglishTest extends FlatSpec with DiagrammedAssertions
     assert(sentence.trim.equals("Time is money ."))
 
   }
+
+  "Neo4j data" should "be properly converted to AnalyzedSentenceObject Type" in {
+    val propositionId =  UUID.random.toString
+    val sentenceId1 =  UUID.random.toString
+    val sentenceId2 =  UUID.random.toString
+
+    val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
+      List.empty[KnowledgeForParser],
+      List.empty[PropositionRelation],
+      List(KnowledgeForParser(propositionId, sentenceId1, Knowledge("Time is money.","en_US", "{}", false )), KnowledgeForParser(propositionId, sentenceId2, Knowledge("Fear often exaggerates danger.","en_US", "{}", false ))),
+      List.empty[PropositionRelation])
+    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
+    val asos = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1)
+    assert(asos.analyzedSentenceObjects.size == 2)
+    asos.analyzedSentenceObjects.foreach(aso => {
+      assert(AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get.sentence == "Time is money ." || AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get.sentence == "Fear often exaggerates danger .")
+    })
+
+  }
+
+  "havePremiseNode" should "be handled properly" in {
+    val propositionId1 =  UUID.random.toString
+    val sentenceId1 = UUID.random.toString
+    val knowledgeForParser = KnowledgeForParser(propositionId1, sentenceId1, Knowledge("Time is money.","en_US", "{}", false ))
+    registSingleClaim(knowledgeForParser)
+    assert(FacadeForAccessNeo4J.havePremiseNode(propositionId1) == false)
+    val propositionId2 =  UUID.random.toString
+    val sentenceId2 = UUID.random.toString
+    val sentenceId3 = UUID.random.toString
+
+    val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
+      List(KnowledgeForParser(propositionId2, sentenceId2, Knowledge("Fear often exaggerates danger.","en_US", "{}"))),
+      List.empty[PropositionRelation],
+      List(KnowledgeForParser(propositionId2, sentenceId3, Knowledge("Grasp Fortune by the forelock.","en_US", "{}"))),
+      List.empty[PropositionRelation])
+    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
+    assert(FacadeForAccessNeo4J.havePremiseNode(propositionId2) == true)
+  }
+
 
 }
