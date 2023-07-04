@@ -1,13 +1,15 @@
 name: Unit Test
 on:
-  push:
+  pull_request:
+    types:
+      - closed
     branches:
-      - feature
+      - main
   workflow_dispatch:
 env:
   PJ_ACTOR: toposoid
   PJ_REPO: toposoid-deduction-common
-  PJ_BRANCH: feature
+  PJ_BRANCH: main
   PJ_VERSION: 0.4
 jobs:
   unit-test_toposoid-deduction-common:
