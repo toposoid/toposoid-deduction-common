@@ -1,7 +1,7 @@
 import Dependencies._
 import sbt.Keys.libraryDependencies
 
-ThisBuild / scalaVersion     := "2.12.12"
+ThisBuild / scalaVersion     := "2.13.11"
 ThisBuild / version          := "0.5-SNAPSHOT"
 ThisBuild / organization     := "com.ideal.linked"
 
@@ -10,10 +10,10 @@ lazy val root = (project in file("."))
     name := "toposoid-deduction-common",
     libraryDependencies += "com.ideal.linked" %% "scala-common" % "0.5-SNAPSHOT",
     libraryDependencies += "com.ideal.linked" %% "toposoid-deduction-protocol-model" % "0.5-SNAPSHOT",
-      libraryDependencies += "com.ideal.linked" %% "toposoid-common" % "0.5-SNAPSHOT",
-    libraryDependencies += "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.14",
+    libraryDependencies += "com.ideal.linked" %% "toposoid-common" % "0.5-SNAPSHOT",
+    libraryDependencies += "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.15",
     libraryDependencies += "com.typesafe.akka" %% "akka-stream" % "2.5.31",
-    libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test,
+    libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % Test,
     libraryDependencies += "com.ideal.linked" %% "toposoid-sentence-transformer-neo4j" % "0.5-SNAPSHOT" % Test,
     libraryDependencies += "io.jvm.uuid" %% "scala-uuid" % "0.3.1" % Test
   )
