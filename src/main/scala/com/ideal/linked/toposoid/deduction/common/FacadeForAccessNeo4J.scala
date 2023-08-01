@@ -25,7 +25,7 @@ import akka.stream.ActorMaterializer
 import play.api.libs.json.Json
 import com.ideal.linked.common.DeploymentConverter.conf
 import com.ideal.linked.toposoid.common.{CLAIM, PREMISE, ToposoidUtils}
-import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode}
+import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, LocalContext}
 import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects, DeductionResult}
 import com.ideal.linked.toposoid.protocol.model.neo4j.{Neo4jRecordMap, Neo4jRecords}
 import com.typesafe.scalalogging.LazyLogging
@@ -91,50 +91,22 @@ object FacadeForAccessNeo4J extends LazyLogging{
           acc
         }else{
           val knowledgeBaseNode1 = KnowledgeBaseNode(
-            node1.nodeId,
-            node1.propositionId,
-            node1.currentId,
-            node1.parentId,
-            node1.isMainSection,
-            node1.surface,
-            node1.normalizedName,
-            node1.dependType,
-            node1.caseType,
-            node1.namedEntity,
-            node1.rangeExpressions,
-            node1.categories,
-            node1.domains,
-            node1.isDenialWord,
-            node1.isConditionalConnection,
-            node1.normalizedNameYomi,
-            node1.surfaceYomi,
-            node1.modalityType,
-            node1.logicType,
-            node1.nodeType,
-            node1.lang)
+            nodeId = node1.nodeId,
+            propositionId = node1.propositionId,
+            sentenceId = node1.sentenceId,
+            predicateArgumentStructure = node1.predicateArgumentStructure,
+            localContext = node1.localContext,
+            extentText = node1.extentText)
 
           val knowledgeBaseNode2 = KnowledgeBaseNode(
-            node2.nodeId,
-            node2.propositionId,
-            node2.currentId,
-            node2.parentId,
-            node2.isMainSection,
-            node2.surface,
-            node2.normalizedName,
-            node2.dependType,
-            node2.caseType,
-            node2.namedEntity,
-            node2.rangeExpressions,
-            node2.categories,
-            node2.domains,
-            node2.isDenialWord,
-            node2.isConditionalConnection,
-            node2.normalizedNameYomi,
-            node2.surfaceYomi,
-            node2.modalityType,
-            node2.logicType,
-            node2.nodeType,
-            node2.lang)
+            nodeId = node2.nodeId,
+            propositionId = node2.propositionId,
+            sentenceId = node2.sentenceId,
+            predicateArgumentStructure = node2.predicateArgumentStructure,
+            localContext = node2.localContext,
+            extentText = node2.extentText)
+
+
           val edge:KnowledgeBaseEdge = x(1).value.logicEdge
           val logicEdge:KnowledgeBaseEdge = KnowledgeBaseEdge(node1.nodeId,node2.nodeId, edge.caseStr, edge.dependType, edge.logicType, edge.lang)
 
@@ -155,7 +127,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
       )
     val asoList = neo4jDataInfo.map(x => {
       val sentenceId = x._2._1.head._2.nodeId.substring(0, x._2._1.head._2.nodeId.lastIndexOf("-"))
-      val lang = x._2._1.head._2.lang
+      val lang = x._2._1.head._2.localContext.lang
       AnalyzedSentenceObject(x._2._1, x._2._2, sentenceType, sentenceId, lang,  deductionResult)
     }).toList
     AnalyzedSentenceObjects(asoList)

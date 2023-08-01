@@ -53,7 +53,7 @@ class FacadeForAccessNeo4JEnglishTest extends AnyFlatSpec with BeforeAndAfter wi
     val neo4jRecords: Neo4jRecords = Json.parse(result).as[Neo4jRecords]
     val sentenceMap: List[(Int, String)] = neo4jRecords.records.reverse.map(record => {
       record.filter(x => x.key.equals("n")).map(y =>
-        y.value.logicNode.currentId -> y.value.logicNode.surface
+        y.value.logicNode.predicateArgumentStructure.currentId -> y.value.logicNode.predicateArgumentStructure.surface
       ).head
     })
     val sentence: String = sentenceMap.toSeq.sortBy(_._1).foldLeft("") { (acc, x) => acc + " " + x._2 }

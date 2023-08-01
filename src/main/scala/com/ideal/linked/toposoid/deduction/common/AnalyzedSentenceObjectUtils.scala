@@ -30,10 +30,10 @@ object AnalyzedSentenceObjectUtils {
     val propositionId = aso.nodeMap.head._2.propositionId
     val sentenceId = aso.sentenceId
     val surfaces:Map[Int, (String, Int, String)] = aso.nodeMap.map(node => {
-      (node._2.currentId -> (node._2.surface, aso.sentenceType, node._2.lang))
+      (node._2.predicateArgumentStructure.currentId -> (node._2.predicateArgumentStructure.surface, aso.sentenceType, node._2.localContext.lang))
     })
 
-    val space = aso.nodeMap.head._2.lang match {
+    val space = aso.nodeMap.head._2.localContext.lang match {
       case "ja_JP" => ""
       case "en_US" => " "
       case _ => " "
