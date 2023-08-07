@@ -2,12 +2,12 @@ name: Unit Test
 on:
   push:
     branches:
-      - version-up-scala-2.13
+      - add-feature-node
   workflow_dispatch:
 env:
   PJ_ACTOR: toposoid
   PJ_REPO: toposoid-deduction-common
-  PJ_BRANCH: version-up-scala-2.13
+  PJ_BRANCH: add-feature-node
   PJ_VERSION: 0.5-SNAPSHOT
 jobs:
   unit-test_toposoid-deduction-common:

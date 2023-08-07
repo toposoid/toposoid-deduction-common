@@ -25,7 +25,8 @@ import akka.stream.ActorMaterializer
 import play.api.libs.json.Json
 import com.ideal.linked.common.DeploymentConverter.conf
 import com.ideal.linked.toposoid.common.{CLAIM, PREMISE, ToposoidUtils}
-import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, LocalContext}
+import com.ideal.linked.toposoid.deduction.common.AnalyzedSentenceObjectUtils.makeSentence
+import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, KnowledgeFeatureNode, LocalContext, LocalContextForFeature}
 import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects, DeductionResult}
 import com.ideal.linked.toposoid.protocol.model.neo4j.{Neo4jRecordMap, Neo4jRecords}
 import com.typesafe.scalalogging.LazyLogging
@@ -128,7 +129,28 @@ object FacadeForAccessNeo4J extends LazyLogging{
     val asoList = neo4jDataInfo.map(x => {
       val sentenceId = x._2._1.head._2.nodeId.substring(0, x._2._1.head._2.nodeId.lastIndexOf("-"))
       val lang = x._2._1.head._2.localContext.lang
-      AnalyzedSentenceObject(x._2._1, x._2._2, sentenceType, sentenceId, lang,  deductionResult)
+      val localContextForFeature: LocalContextForFeature = LocalContextForFeature(lang, Map.empty[String, String])
+      val tmpKnowledgeFeatureNode: KnowledgeFeatureNode = KnowledgeFeatureNode(
+        sentenceId,
+        propositionId,
+        sentenceId,
+        "",
+        sentenceType,
+        localContextForFeature,
+        "{}"
+      )
+      val aso = AnalyzedSentenceObject(x._2._1, x._2._2, tmpKnowledgeFeatureNode,  deductionResult)
+      val sentenceMap = makeSentence(aso)
+      val knowledgeFeatureNode: KnowledgeFeatureNode = KnowledgeFeatureNode(
+        sentenceId,
+        propositionId,
+        sentenceId,
+        sentenceMap.get(sentenceType).get.sentence,
+        sentenceType,
+        localContextForFeature,
+        "{}"
+      )
+      AnalyzedSentenceObject(x._2._1, x._2._2, knowledgeFeatureNode,  deductionResult)
     }).toList
     AnalyzedSentenceObjects(asoList)
 
