@@ -26,7 +26,7 @@ import play.api.libs.json.Json
 import com.ideal.linked.common.DeploymentConverter.conf
 import com.ideal.linked.toposoid.common.{CLAIM, PREMISE, ToposoidUtils}
 import com.ideal.linked.toposoid.deduction.common.AnalyzedSentenceObjectUtils.makeSentence
-import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, KnowledgeFeatureNode, LocalContext, LocalContextForFeature}
+import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, KnowledgeFeatureNode, KnowledgeFeatureReference, LocalContext, LocalContextForFeature}
 import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects, DeductionResult}
 import com.ideal.linked.toposoid.protocol.model.neo4j.{Neo4jRecordMap, Neo4jRecords}
 import com.typesafe.scalalogging.LazyLogging
@@ -96,16 +96,14 @@ object FacadeForAccessNeo4J extends LazyLogging{
             propositionId = node1.propositionId,
             sentenceId = node1.sentenceId,
             predicateArgumentStructure = node1.predicateArgumentStructure,
-            localContext = node1.localContext,
-            extentText = node1.extentText)
+            localContext = node1.localContext)
 
           val knowledgeBaseNode2 = KnowledgeBaseNode(
             nodeId = node2.nodeId,
             propositionId = node2.propositionId,
             sentenceId = node2.sentenceId,
             predicateArgumentStructure = node2.predicateArgumentStructure,
-            localContext = node2.localContext,
-            extentText = node2.extentText)
+            localContext = node2.localContext)
 
 
           val edge:KnowledgeBaseEdge = x(1).value.logicEdge
@@ -129,15 +127,14 @@ object FacadeForAccessNeo4J extends LazyLogging{
     val asoList = neo4jDataInfo.map(x => {
       val sentenceId = x._2._1.head._2.nodeId.substring(0, x._2._1.head._2.nodeId.lastIndexOf("-"))
       val lang = x._2._1.head._2.localContext.lang
-      val localContextForFeature: LocalContextForFeature = LocalContextForFeature(lang, Map.empty[String, String])
+      val localContextForFeature: LocalContextForFeature = LocalContextForFeature(lang, List.empty[KnowledgeFeatureReference])
       val tmpKnowledgeFeatureNode: KnowledgeFeatureNode = KnowledgeFeatureNode(
         sentenceId,
         propositionId,
         sentenceId,
         "",
         sentenceType,
-        localContextForFeature,
-        "{}"
+        localContextForFeature
       )
       val aso = AnalyzedSentenceObject(x._2._1, x._2._2, tmpKnowledgeFeatureNode,  deductionResult)
       val sentenceMap = makeSentence(aso)
@@ -147,8 +144,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
         sentenceId,
         sentenceMap.get(sentenceType).get.sentence,
         sentenceType,
-        localContextForFeature,
-        "{}"
+        localContextForFeature
       )
       AnalyzedSentenceObject(x._2._1, x._2._2, knowledgeFeatureNode,  deductionResult)
     }).toList
