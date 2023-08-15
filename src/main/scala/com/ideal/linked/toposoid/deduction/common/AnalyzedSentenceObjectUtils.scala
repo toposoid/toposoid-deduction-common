@@ -28,9 +28,9 @@ object AnalyzedSentenceObjectUtils {
 
   def makeSentence(aso: AnalyzedSentenceObject): Map[Int, SentenceInfo] ={
     val propositionId = aso.nodeMap.head._2.propositionId
-    val sentenceId = aso.sentenceId
+    val sentenceId = aso.knowledgeFeatureNode.sentenceId
     val surfaces:Map[Int, (String, Int, String)] = aso.nodeMap.map(node => {
-      (node._2.predicateArgumentStructure.currentId -> (node._2.predicateArgumentStructure.surface, aso.sentenceType, node._2.localContext.lang))
+      (node._2.predicateArgumentStructure.currentId -> (node._2.predicateArgumentStructure.surface, aso.knowledgeFeatureNode.sentenceType, node._2.localContext.lang))
     })
 
     val space = aso.nodeMap.head._2.localContext.lang match {
