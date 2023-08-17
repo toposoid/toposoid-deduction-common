@@ -27,7 +27,7 @@ import com.ideal.linked.common.DeploymentConverter.conf
 import com.ideal.linked.toposoid.common.{CLAIM, PREMISE, ToposoidUtils}
 import com.ideal.linked.toposoid.deduction.common.AnalyzedSentenceObjectUtils.makeSentence
 import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, KnowledgeFeatureNode, KnowledgeFeatureReference, LocalContext, LocalContextForFeature}
-import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects, DeductionResult}
+import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects, DeductionResult, MatchedPropositionInfo}
 import com.ideal.linked.toposoid.protocol.model.neo4j.{Neo4jRecordMap, Neo4jRecords}
 import com.typesafe.scalalogging.LazyLogging
 
@@ -121,8 +121,8 @@ object FacadeForAccessNeo4J extends LazyLogging{
     }
     val deductionResult:Map[String, DeductionResult] =
       Map(
-        PREMISE.index.toString -> DeductionResult(false, List.empty[String], ""),
-        CLAIM.index.toString -> DeductionResult(false, List.empty[String],"")
+        PREMISE.index.toString -> DeductionResult(false, List.empty[MatchedPropositionInfo], ""),
+        CLAIM.index.toString -> DeductionResult(false, List.empty[MatchedPropositionInfo],"")
       )
     val asoList = neo4jDataInfo.map(x => {
       val sentenceId = x._2._1.head._2.nodeId.substring(0, x._2._1.head._2.nodeId.lastIndexOf("-"))
