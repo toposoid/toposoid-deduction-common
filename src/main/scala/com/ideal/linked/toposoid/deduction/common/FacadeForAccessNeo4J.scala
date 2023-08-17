@@ -58,8 +58,8 @@ object FacadeForAccessNeo4J extends LazyLogging{
    * @param propositionId
    * @return
    */
-  def havePremiseNode(propositionId:String):Boolean = Try{
-    val query = "MATCH (m:PremiseNode)-[e:LogicEdge]-(n:ClaimNode) WHERE n.propositionId='%s' return m, e, n".format(propositionId)
+  def havePremiseNode(matchedPropositionInfo:MatchedPropositionInfo):Boolean = Try{
+    val query = "MATCH (m:PremiseNode)-[e:LogicEdge]-(n:ClaimNode) WHERE n.propositionId='%s' return m, e, n".format(matchedPropositionInfo.propositionId)
     val jsonStr:String = getCypherQueryResult(query, "")
     if(jsonStr.equals("""{"records":[]}""")) false
     else true
@@ -200,10 +200,10 @@ object FacadeForAccessNeo4J extends LazyLogging{
    * @param record
    * @return
    */
-  def existALlPropositionIdEqualId(id:String, record:List[Neo4jRecordMap]):Boolean = Try{
+  def existALlPropositionIdEqualId(matchedPropositionInfo:MatchedPropositionInfo, record:List[Neo4jRecordMap]):Boolean = Try{
     if(record.size > 0){
       record.foreach { map: Neo4jRecordMap =>
-        if (map.value.logicNode.propositionId.equals(id)) {
+        if (map.value.logicNode.propositionId.equals(matchedPropositionInfo.propositionId)) {
           return true
         }
       }
