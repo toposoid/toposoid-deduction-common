@@ -113,7 +113,7 @@ class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter w
     })
   }
 
-
+  /*
   "havePremiseNode" should "be handled properly" in {
     val propositionId1 =  UUID.random.toString
     val sentenceId1 = UUID.random.toString
@@ -132,6 +132,6 @@ class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter w
     Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
     assert(FacadeForAccessNeo4J.havePremiseNode(MatchedPropositionInfo(propositionId2,List.empty[MatchedFeatureInfo])) == true)
   }
-
+  */
 
 }

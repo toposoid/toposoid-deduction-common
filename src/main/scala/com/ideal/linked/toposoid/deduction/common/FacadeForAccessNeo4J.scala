@@ -58,6 +58,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
    * @param propositionId
    * @return
    */
+  /*
   def havePremiseNode(matchedPropositionInfo:MatchedPropositionInfo):Boolean = Try{
     val query = "MATCH (m:PremiseNode)-[e:LogicEdge]-(n:ClaimNode) WHERE n.propositionId='%s' return m, e, n".format(matchedPropositionInfo.propositionId)
     val jsonStr:String = getCypherQueryResult(query, "")
@@ -67,7 +68,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
     case Success(s) => s
     case Failure(e) => throw e
   }
-
+  */
   /**
    *
    * @param propositionId
@@ -200,6 +201,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
    * @param record
    * @return
    */
+    /*
   def existALlPropositionIdEqualId(matchedPropositionInfo:MatchedPropositionInfo, record:List[Neo4jRecordMap]):Boolean = Try{
     if(record.size > 0){
       record.foreach { map: Neo4jRecordMap =>
@@ -212,5 +214,5 @@ object FacadeForAccessNeo4J extends LazyLogging{
   }match {
     case Failure(e) => throw e
   }
-
+  */
 }
