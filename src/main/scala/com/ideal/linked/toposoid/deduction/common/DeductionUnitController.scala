@@ -27,9 +27,9 @@ import play.api.mvc._
 
 
 trait DeductionUnitController extends LazyLogging {
-  def execute: Action[JsValue]
+  protected def execute: Action[JsValue]
 
-  def analyzeGraphKnowledge(edge: KnowledgeBaseEdge, nodeMap: Map[String, KnowledgeBaseNode], sentenceType: Int, accParent: (List[List[Neo4jRecordMap]], List[MatchedPropositionInfo])): (List[List[Neo4jRecordMap]], List[MatchedPropositionInfo])
+  protected def analyzeGraphKnowledge(edge: KnowledgeBaseEdge, nodeMap: Map[String, KnowledgeBaseNode], sentenceType: Int, accParent: (List[List[Neo4jRecordMap]], List[MatchedPropositionInfo])): (List[List[Neo4jRecordMap]], List[MatchedPropositionInfo])
 
   /**
    * final check
@@ -39,7 +39,7 @@ trait DeductionUnitController extends LazyLogging {
    * @param searchResults
    * @return
    */
-  private def checkFinal(targetMatchedPropositionInfoList: List[MatchedPropositionInfo], aso: AnalyzedSentenceObject, searchResults: List[List[Neo4jRecordMap]]): AnalyzedSentenceObject = {
+  private def checkFinal(targetMatchedPropositionInfoList: List[MatchedPropositionInfo], aso: AnalyzedSentenceObject, searchResults: List[List[Neo4jRecordMap]], deductionUnitName:String): AnalyzedSentenceObject = {
     //The targetMatchedPropositionInfoList contains duplicate propositionIds.
     if (targetMatchedPropositionInfoList.size < aso.edgeList.size) return aso
     //Pick up the most frequent propositionId
@@ -65,7 +65,7 @@ trait DeductionUnitController extends LazyLogging {
 
     val status = true
     //selectedPropositions includes trivialClaimsPropositionIds
-    val deductionResult: DeductionResult = new DeductionResult(status, finalPropositionInfoList, "exact-match")
+    val deductionResult: DeductionResult = new DeductionResult(status, finalPropositionInfoList, deductionUnitName)
     val updateDeductionResultMap = aso.deductionResultMap.updated(aso.knowledgeFeatureNode.sentenceType.toString, deductionResult)
     AnalyzedSentenceObject(aso.nodeMap, aso.edgeList, aso.knowledgeFeatureNode, updateDeductionResultMap)
 
@@ -152,6 +152,7 @@ trait DeductionUnitController extends LazyLogging {
     }
 
   }
+
   /**
    * This function analyzes whether the entered text exactly matches.
    *
@@ -159,13 +160,13 @@ trait DeductionUnitController extends LazyLogging {
    * @param asos
    * @return
    */
-  def analyze(aso: AnalyzedSentenceObject, asos: List[AnalyzedSentenceObject]): AnalyzedSentenceObject = {
+  def analyze(aso: AnalyzedSentenceObject, asos: List[AnalyzedSentenceObject], deductionUnitName:String): AnalyzedSentenceObject = {
 
     val (searchResults, propositionIdInfoList) = aso.edgeList.foldLeft((List.empty[List[Neo4jRecordMap]], List.empty[MatchedPropositionInfo])) {
       (acc, x) => analyzeGraphKnowledge(x, aso.nodeMap, aso.knowledgeFeatureNode.sentenceType, acc)
     }
     if (propositionIdInfoList.size == 0) return aso
-    val result = checkFinal(propositionIdInfoList, aso, searchResults)
+    val result = checkFinal(propositionIdInfoList, aso, searchResults, deductionUnitName)
 
     //This process requires that the Premise has already finished in calculating the DeductionResult
     if (aso.knowledgeFeatureNode.sentenceType == CLAIM.index) {
@@ -204,7 +205,20 @@ trait DeductionUnitController extends LazyLogging {
       result
     }
   }
-
+  /*
+  private def getPropositionIdsInDeductionPremiseResult(asos:List[AnalyzedSentenceObject]):List[String] ={
+    //もし前提がある命題であれば、その演繹結果を取得
+    val premisePropositions: List[AnalyzedSentenceObject] = asos.filter(x => x.knowledgeFeatureNode.sentenceType == PREMISE.index).size match {
+      case 0 => List.empty[AnalyzedSentenceObject]
+      case _ => asos.filter(x => x.knowledgeFeatureNode.sentenceType == PREMISE.index)
+    }
+    val premiseDeductionResult: List[DeductionResult] = premisePropositions.filter(_.deductionResultMap.get(PREMISE.index.toString).get.status).size match {
+      case 0 => List.empty[DeductionResult]
+      case _ => premisePropositions.filter(_.deductionResultMap.get(PREMISE.index.toString).get.status).map(_.deductionResultMap.get(PREMISE.index.toString).get)
+    }
+    premiseDeductionResult.map(_.matchedPropositionInfoList.map(_.propositionId)).flatten
+  }
+  */
 }
 
 
