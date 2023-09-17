@@ -18,7 +18,7 @@ package com.ideal.linked.toposoid.deduction.common
 
 import com.ideal.linked.data.accessor.neo4j.Neo4JAccessor
 import com.ideal.linked.toposoid.knowledgebase.regist.model.{Knowledge, KnowledgeSentenceSet, PropositionRelation}
-import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects}
+import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects, MatchedFeatureInfo, MatchedPropositionInfo}
 import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
 import com.ideal.linked.toposoid.protocol.model.parser.{KnowledgeForParser, KnowledgeSentenceSetForParser}
 import com.ideal.linked.toposoid.sentence.transformer.neo4j.Sentence2Neo4jTransformer
@@ -113,14 +113,14 @@ class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter w
     })
   }
 
-
+  /*
   "havePremiseNode" should "be handled properly" in {
     val propositionId1 =  UUID.random.toString
     val sentenceId1 = UUID.random.toString
     val knowledgeForParser = KnowledgeForParser(propositionId1, sentenceId1, Knowledge("案ずるより産むが易し。", "ja_JP", "{}", false ))
     registSingleClaim(knowledgeForParser)
 
-    assert(FacadeForAccessNeo4J.havePremiseNode(propositionId1) == false)
+    assert(FacadeForAccessNeo4J.havePremiseNode(MatchedPropositionInfo(propositionId1,List.empty[MatchedFeatureInfo])) == false)
     val propositionId2 =  UUID.random.toString
     val sentenceId2 = UUID.random.toString
     val sentenceId3 = UUID.random.toString
@@ -130,8 +130,8 @@ class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter w
       List(KnowledgeForParser(propositionId2, sentenceId3, Knowledge("思い立ったが吉日。","ja_JP", "{}"))),
       List.empty[PropositionRelation])
     Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
-    assert(FacadeForAccessNeo4J.havePremiseNode(propositionId2) == true)
+    assert(FacadeForAccessNeo4J.havePremiseNode(MatchedPropositionInfo(propositionId2,List.empty[MatchedFeatureInfo])) == true)
   }
-
+  */
 
 }
