@@ -66,8 +66,8 @@ trait DeductionUnitController extends LazyLogging {
     val status = true
     //selectedPropositions includes trivialClaimsPropositionIds
     val deductionResult: DeductionResult = new DeductionResult(status, finalPropositionInfoList, deductionUnitName)
-    val updateDeductionResultMap = aso.deductionResultMap.updated(aso.knowledgeFeatureNode.sentenceType.toString, deductionResult)
-    AnalyzedSentenceObject(aso.nodeMap, aso.edgeList, aso.knowledgeFeatureNode, updateDeductionResultMap)
+    val updateDeductionResultMap = aso.deductionResultMap.updated(aso.knowledgeBaseSemiGlobalNode.sentenceType.toString, deductionResult)
+    AnalyzedSentenceObject(aso.nodeMap, aso.edgeList, aso.knowledgeBaseSemiGlobalNode, updateDeductionResultMap)
 
   }
 
@@ -163,17 +163,17 @@ trait DeductionUnitController extends LazyLogging {
   def analyze(aso: AnalyzedSentenceObject, asos: List[AnalyzedSentenceObject], deductionUnitName:String): AnalyzedSentenceObject = {
 
     val (searchResults, propositionIdInfoList) = aso.edgeList.foldLeft((List.empty[List[Neo4jRecordMap]], List.empty[MatchedPropositionInfo])) {
-      (acc, x) => analyzeGraphKnowledge(x, aso.nodeMap, aso.knowledgeFeatureNode.sentenceType, acc)
+      (acc, x) => analyzeGraphKnowledge(x, aso.nodeMap, aso.knowledgeBaseSemiGlobalNode.sentenceType, acc)
     }
     if (propositionIdInfoList.size == 0) return aso
     val result = checkFinal(propositionIdInfoList, aso, searchResults, deductionUnitName)
 
     //This process requires that the Premise has already finished in calculating the DeductionResult
-    if (aso.knowledgeFeatureNode.sentenceType == CLAIM.index) {
+    if (aso.knowledgeBaseSemiGlobalNode.sentenceType == CLAIM.index) {
       val premiseDeductionResults: List[DeductionResult] = asos.map(x => x.deductionResultMap.get(PREMISE.index.toString).get)
       //If there is no deduction result that makes premise true, return the process.
       if (premiseDeductionResults.filter(_.status).size == 0) return result
-      asos.filter(x => x.knowledgeFeatureNode.sentenceType == PREMISE.index).size match {
+      asos.filter(x => x.knowledgeBaseSemiGlobalNode.sentenceType == PREMISE.index).size match {
         case 0 => result
         case _ => {
           //val premiseDeductionResults: List[DeductionResult] = asos.map(x => x.deductionResultMap.get(PREMISE.index.toString).get)
@@ -194,7 +194,7 @@ trait DeductionUnitController extends LazyLogging {
               AnalyzedSentenceObject(
                 nodeMap = result.nodeMap,
                 edgeList = result.edgeList,
-                knowledgeFeatureNode = result.knowledgeFeatureNode,
+                knowledgeBaseSemiGlobalNode = result.knowledgeBaseSemiGlobalNode,
                 deductionResultMap = result.deductionResultMap.updated(CLAIM.index.toString, updateDeductionResult))
             }
             case _ => result

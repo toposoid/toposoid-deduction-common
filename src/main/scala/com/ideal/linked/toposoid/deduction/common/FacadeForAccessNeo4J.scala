@@ -24,11 +24,11 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import play.api.libs.json.Json
 import com.ideal.linked.common.DeploymentConverter.conf
-import com.ideal.linked.toposoid.common.{CLAIM, PREMISE, ToposoidUtils}
+import com.ideal.linked.toposoid.common.{CLAIM, LOCAL, PREDICATE_ARGUMENT, PREMISE, ToposoidUtils}
 import com.ideal.linked.toposoid.deduction.common.AnalyzedSentenceObjectUtils.makeSentence
-import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, KnowledgeFeatureNode, KnowledgeFeatureReference, LocalContext, LocalContextForFeature}
+import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, KnowledgeBaseSemiGlobalNode, KnowledgeFeatureReference, LocalContextForFeature}
 import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects, DeductionResult, MatchedPropositionInfo}
-import com.ideal.linked.toposoid.protocol.model.neo4j.{Neo4jRecordMap, Neo4jRecords}
+import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.util.{Failure, Success, Try}
@@ -62,7 +62,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
    */
   def getAnalyzedSentenceObjectBySentenceId(propositionId:String, sentenceId:String, sentenceType:Int, lang:String):AnalyzedSentenceObject = Try {
     //Neo4JにClaimとして存在している場合に推論が可能になる
-    val nodeType: String = ToposoidUtils.getNodeType(CLAIM.index)
+    val nodeType: String = ToposoidUtils.getNodeType(CLAIM.index, LOCAL.index, PREDICATE_ARGUMENT.index)
     val query = "MATCH (n1:%s)-[e]->(n2:%s) WHERE n1.sentenceId='%s' AND n2.sentenceId='%s' RETURN n1, e, n2".format(nodeType, nodeType, sentenceId, sentenceId)
     val jsonStr: String = getCypherQueryResult(query, "")
     //If there is even one that does not match, it is useless to search further
@@ -110,7 +110,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
       )
 
     val localContextForFeature: LocalContextForFeature = LocalContextForFeature(lang, List.empty[KnowledgeFeatureReference])
-    val tmpKnowledgeFeatureNode: KnowledgeFeatureNode = KnowledgeFeatureNode(
+    val tmpKnowledgeBaseSemiGlobalNode: KnowledgeBaseSemiGlobalNode = KnowledgeBaseSemiGlobalNode(
       sentenceId,
       propositionId,
       sentenceId,
@@ -121,7 +121,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
 
     AnalyzedSentenceObject(nodeMap = neo4jDataInfo._1 ,
       edgeList = neo4jDataInfo._2,
-      knowledgeFeatureNode = tmpKnowledgeFeatureNode,
+      knowledgeBaseSemiGlobalNode = tmpKnowledgeBaseSemiGlobalNode,
       deductionResultMap = deductionResult)
   }
 
@@ -132,7 +132,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
    * @return
    */
   def neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId:String, sentenceType:Int):AnalyzedSentenceObjects = Try{
-    val nodeType:String = ToposoidUtils.getNodeType(sentenceType)
+    val nodeType:String = ToposoidUtils.getNodeType(sentenceType, LOCAL.index, PREDICATE_ARGUMENT.index)
     val query = "MATCH (n1:%s)-[e]->(n2:%s) WHERE n1.propositionId='%s' AND n2.propositionId='%s' RETURN n1, e, n2".format(nodeType, nodeType, propositionId, propositionId)
     val jsonStr:String = getCypherQueryResult(query, "")
     //If there is even one that does not match, it is useless to search further
@@ -185,7 +185,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
       val sentenceId = x._2._1.head._2.nodeId.substring(0, x._2._1.head._2.nodeId.lastIndexOf("-"))
       val lang = x._2._1.head._2.localContext.lang
       val localContextForFeature: LocalContextForFeature = LocalContextForFeature(lang, List.empty[KnowledgeFeatureReference])
-      val tmpKnowledgeFeatureNode: KnowledgeFeatureNode = KnowledgeFeatureNode(
+      val tmpKnowledgeFeatureNode: KnowledgeBaseSemiGlobalNode = KnowledgeBaseSemiGlobalNode(
         sentenceId,
         propositionId,
         sentenceId,
@@ -195,7 +195,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
       )
       val aso = AnalyzedSentenceObject(x._2._1, x._2._2, tmpKnowledgeFeatureNode,  deductionResult)
       val sentenceMap = makeSentence(aso)
-      val knowledgeFeatureNode: KnowledgeFeatureNode = KnowledgeFeatureNode(
+      val knowledgeFeatureNode: KnowledgeBaseSemiGlobalNode = KnowledgeBaseSemiGlobalNode(
         sentenceId,
         propositionId,
         sentenceId,
