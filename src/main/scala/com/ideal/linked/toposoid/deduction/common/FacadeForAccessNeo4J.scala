@@ -27,7 +27,7 @@ import com.ideal.linked.common.DeploymentConverter.conf
 import com.ideal.linked.toposoid.common.{CLAIM, LOCAL, PREDICATE_ARGUMENT, PREMISE, ToposoidUtils}
 import com.ideal.linked.toposoid.deduction.common.AnalyzedSentenceObjectUtils.makeSentence
 import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, KnowledgeBaseSemiGlobalNode, KnowledgeFeatureReference, LocalContextForFeature}
-import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects, DeductionResult, MatchedPropositionInfo}
+import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects, CoveredPropositionEdge, CoveredPropositionResult, DeductionResult, MatchedPropositionInfo}
 import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
 import com.typesafe.scalalogging.LazyLogging
 
@@ -103,11 +103,13 @@ object FacadeForAccessNeo4J extends LazyLogging{
       }
     }
 
-    val deductionResult: Map[String, DeductionResult] =
-      Map(
-        PREMISE.index.toString -> DeductionResult (false, List.empty[MatchedPropositionInfo], ""),
-        CLAIM.index.toString -> DeductionResult (false, List.empty[MatchedPropositionInfo], "")
-      )
+    val coveredPropositionResult: CoveredPropositionResult = CoveredPropositionResult(
+      "",
+      propositionId,
+      sentenceId,
+      List.empty[CoveredPropositionEdge]
+    )
+    val deductionResult: DeductionResult = DeductionResult (false, List.empty[MatchedPropositionInfo], "", coveredPropositionResult)
 
     val localContextForFeature: LocalContextForFeature = LocalContextForFeature(lang, List.empty[KnowledgeFeatureReference])
     val tmpKnowledgeBaseSemiGlobalNode: KnowledgeBaseSemiGlobalNode = KnowledgeBaseSemiGlobalNode(
@@ -122,7 +124,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
     AnalyzedSentenceObject(nodeMap = neo4jDataInfo._1 ,
       edgeList = neo4jDataInfo._2,
       knowledgeBaseSemiGlobalNode = tmpKnowledgeBaseSemiGlobalNode,
-      deductionResultMap = deductionResult)
+      deductionResult = deductionResult)
   }
 
   /**
@@ -176,11 +178,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
         }
       }
     }
-    val deductionResult:Map[String, DeductionResult] =
-      Map(
-        PREMISE.index.toString -> DeductionResult(false, List.empty[MatchedPropositionInfo], ""),
-        CLAIM.index.toString -> DeductionResult(false, List.empty[MatchedPropositionInfo],"")
-      )
+
     val asoList = neo4jDataInfo.map(x => {
       val sentenceId = x._2._1.head._2.nodeId.substring(0, x._2._1.head._2.nodeId.lastIndexOf("-"))
       val lang = x._2._1.head._2.localContext.lang
@@ -193,9 +191,18 @@ object FacadeForAccessNeo4J extends LazyLogging{
         sentenceType,
         localContextForFeature
       )
+
+      val coveredPropositionResult: CoveredPropositionResult = CoveredPropositionResult(
+        "",
+        propositionId,
+        sentenceId,
+        List.empty[CoveredPropositionEdge]
+      )
+      val deductionResult: DeductionResult = DeductionResult(false, List.empty[MatchedPropositionInfo], "", coveredPropositionResult)
+
       val aso = AnalyzedSentenceObject(x._2._1, x._2._2, tmpKnowledgeFeatureNode,  deductionResult)
       val sentenceMap = makeSentence(aso)
-      val knowledgeFeatureNode: KnowledgeBaseSemiGlobalNode = KnowledgeBaseSemiGlobalNode(
+      val knowledgeBaseSemiGlobalNode: KnowledgeBaseSemiGlobalNode = KnowledgeBaseSemiGlobalNode(
         sentenceId,
         propositionId,
         sentenceId,
@@ -203,7 +210,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
         sentenceType,
         localContextForFeature
       )
-      AnalyzedSentenceObject(x._2._1, x._2._2, knowledgeFeatureNode,  deductionResult)
+      AnalyzedSentenceObject(x._2._1, x._2._2, knowledgeBaseSemiGlobalNode,  deductionResult)
     }).toList
     AnalyzedSentenceObjects(asoList)
 
