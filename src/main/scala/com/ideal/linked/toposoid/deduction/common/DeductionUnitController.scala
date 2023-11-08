@@ -18,8 +18,8 @@ package com.ideal.linked.toposoid.deduction.common
 
 import com.ideal.linked.toposoid.common.{CLAIM, PREMISE}
 import com.ideal.linked.toposoid.deduction.common.FacadeForAccessNeo4J.getCypherQueryResult
-import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode}
-import com.ideal.linked.toposoid.protocol.model.base._
+import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, KnowledgeBaseSemiGlobalNode}
+import com.ideal.linked.toposoid.protocol.model.base.{CoveredPropositionResult, _}
 import com.ideal.linked.toposoid.protocol.model.neo4j.{Neo4jRecordMap, Neo4jRecords}
 import com.typesafe.scalalogging.LazyLogging
 import play.api.libs.json.{JsValue, Json}
@@ -29,7 +29,7 @@ import play.api.mvc._
 trait DeductionUnitController extends LazyLogging {
   protected def execute: Action[JsValue]
 
-  protected def analyzeGraphKnowledge(edge: KnowledgeBaseEdge, nodeMap: Map[String, KnowledgeBaseNode], sentenceType: Int, accParent: (List[List[Neo4jRecordMap]], List[MatchedPropositionInfo])): (List[List[Neo4jRecordMap]], List[MatchedPropositionInfo])
+  protected def analyzeGraphKnowledge(edge: KnowledgeBaseEdge, nodeMap: Map[String, KnowledgeBaseNode], sentenceType: Int, accParent: (List[List[Neo4jRecordMap]], List[MatchedPropositionInfo], List[CoveredPropositionEdge])): (List[List[Neo4jRecordMap]], List[MatchedPropositionInfo], List[CoveredPropositionEdge])
 
   /**
    * final check
@@ -39,12 +39,23 @@ trait DeductionUnitController extends LazyLogging {
    * @param searchResults
    * @return
    */
-  private def checkFinal(targetMatchedPropositionInfoList: List[MatchedPropositionInfo], aso: AnalyzedSentenceObject, searchResults: List[List[Neo4jRecordMap]], deductionUnitName:String): AnalyzedSentenceObject = {
+  private def checkFinal(targetMatchedPropositionInfoList: List[MatchedPropositionInfo], aso: AnalyzedSentenceObject, searchResults: List[List[Neo4jRecordMap]], deductionUnitName:String, coveredPropositionEdgeList:List[CoveredPropositionEdge] ): AnalyzedSentenceObject = {
+
+    val updatedCoveredPropositionResult = updateCoveredPropositionResult(aso.deductionResult, coveredPropositionEdgeList, aso.knowledgeBaseSemiGlobalNode, deductionUnitName)
+    val updateDeductionResult: DeductionResult = new DeductionResult(
+      aso.deductionResult.status,
+      aso.deductionResult.matchedPropositionInfoList,
+      aso.deductionResult.deductionUnit,
+      updatedCoveredPropositionResult,
+      aso.deductionResult.havePremiseInGivenProposition
+    )
+    val updateAso = AnalyzedSentenceObject(aso.nodeMap, aso.edgeList, aso.knowledgeBaseSemiGlobalNode, updateDeductionResult)
+
     //The targetMatchedPropositionInfoList contains duplicate propositionIds.
-    if (targetMatchedPropositionInfoList.size < aso.edgeList.size) return aso
+    if (targetMatchedPropositionInfoList.size < aso.edgeList.size) return updateAso
     //Pick up the most frequent propositionId
     val dupFreq = targetMatchedPropositionInfoList.groupBy(identity).filter(x => x._2.size >= aso.edgeList.size)
-    if (dupFreq.size == 0) return aso
+    if (dupFreq.size == 0) return updateAso
 
     val minFreqSize = dupFreq.mapValues(_.size).minBy(_._2)._2
     val propositionIdsHavingMinFreq: List[MatchedPropositionInfo] = targetMatchedPropositionInfoList.groupBy(identity).mapValues(_.size).filter(_._2 == minFreqSize).map(_._1).toList
@@ -61,16 +72,24 @@ trait DeductionUnitController extends LazyLogging {
       case _ => propositionInfoListOnlyClaim ::: checkClaimHavingPremise(propositionInfoListHavingPremise)
     }
 
-    if (finalPropositionInfoList.size == 0) return aso
+    if (finalPropositionInfoList.size == 0) return updateAso
 
     val status = true
     //selectedPropositions includes trivialClaimsPropositionIds
-    val deductionResult: DeductionResult = new DeductionResult(status, finalPropositionInfoList, deductionUnitName)
-    val updateDeductionResultMap = aso.deductionResultMap.updated(aso.knowledgeBaseSemiGlobalNode.sentenceType.toString, deductionResult)
-    AnalyzedSentenceObject(aso.nodeMap, aso.edgeList, aso.knowledgeBaseSemiGlobalNode, updateDeductionResultMap)
+    val deductionResult: DeductionResult = new DeductionResult(status, finalPropositionInfoList, deductionUnitName, updatedCoveredPropositionResult)
+    //val updateDeductionResult = aso.deductionResult.updated(aso.knowledgeBaseSemiGlobalNode.sentenceType.toString, deductionResult)
+    AnalyzedSentenceObject(aso.nodeMap, aso.edgeList, aso.knowledgeBaseSemiGlobalNode, deductionResult)
 
   }
 
+  private def updateCoveredPropositionResult(deductionResult:DeductionResult, coveredPropositionEdgeList:List[CoveredPropositionEdge], knowledgeBaseSemiGlobalNode:KnowledgeBaseSemiGlobalNode, deductionUnitName:String): CoveredPropositionResult = {
+    //もし該当のDeductionUnitが多く被覆していたらその情報を置き換える。
+    if(deductionResult.coveredPropositionResult.coveredPropositionEdges.size >= coveredPropositionEdgeList.size) {
+      deductionResult.coveredPropositionResult
+    }else{
+      CoveredPropositionResult(deductionUnit = deductionUnitName, propositionId = knowledgeBaseSemiGlobalNode.propositionId, sentenceId = knowledgeBaseSemiGlobalNode.propositionId, coveredPropositionEdges = coveredPropositionEdgeList)
+    }
+  }
   /**
    *
    * @param matchedPropositionInfo
@@ -162,15 +181,16 @@ trait DeductionUnitController extends LazyLogging {
    */
   def analyze(aso: AnalyzedSentenceObject, asos: List[AnalyzedSentenceObject], deductionUnitName:String): AnalyzedSentenceObject = {
 
-    val (searchResults, propositionIdInfoList) = aso.edgeList.foldLeft((List.empty[List[Neo4jRecordMap]], List.empty[MatchedPropositionInfo])) {
+    val (searchResults, propositionIdInfoList, coveredPropositionEdgeList) = aso.edgeList.foldLeft((List.empty[List[Neo4jRecordMap]], List.empty[MatchedPropositionInfo], List.empty[CoveredPropositionEdge])) {
       (acc, x) => analyzeGraphKnowledge(x, aso.nodeMap, aso.knowledgeBaseSemiGlobalNode.sentenceType, acc)
     }
     if (propositionIdInfoList.size == 0) return aso
-    val result = checkFinal(propositionIdInfoList, aso, searchResults, deductionUnitName)
+    val result = checkFinal(propositionIdInfoList, aso, searchResults, deductionUnitName, coveredPropositionEdgeList)
 
     //This process requires that the Premise has already finished in calculating the DeductionResult
     if (aso.knowledgeBaseSemiGlobalNode.sentenceType == CLAIM.index) {
-      val premiseDeductionResults: List[DeductionResult] = asos.map(x => x.deductionResultMap.get(PREMISE.index.toString).get)
+      //val premiseDeductionResults: List[DeductionResult] = asos.map(x => x.deductionResultMap.get(PREMISE.index.toString).get)
+      val premiseDeductionResults: List[DeductionResult] = asos.filter(x => x.knowledgeBaseSemiGlobalNode.sentenceType == PREMISE.index).map(y => y.deductionResult)
       //If there is no deduction result that makes premise true, return the process.
       if (premiseDeductionResults.filter(_.status).size == 0) return result
       asos.filter(x => x.knowledgeBaseSemiGlobalNode.sentenceType == PREMISE.index).size match {
@@ -179,23 +199,27 @@ trait DeductionUnitController extends LazyLogging {
           //val premiseDeductionResults: List[DeductionResult] = asos.map(x => x.deductionResultMap.get(PREMISE.index.toString).get)
           val matchedPropositionInfoList: List[MatchedPropositionInfo] = premiseDeductionResults.map(_.matchedPropositionInfoList).flatten
           val premisePropositionIds: Set[String] = matchedPropositionInfoList.map(_.propositionId).toSet
-          val claimPropositionIds: Set[String] = result.deductionResultMap.get(CLAIM.index.toString).get.matchedPropositionInfoList.map(_.propositionId).toSet[String]
-
+          //val claimPropositionIds: Set[String] = result.deductionResultMap.get(CLAIM.index.toString).get.matchedPropositionInfoList.map(_.propositionId).toSet[String]
+          //Depending on the conditions, the result is claim information.
+          val claimPropositionIds:Set[String] = result.deductionResult.matchedPropositionInfoList.map(_.propositionId).toSet[String]
           //There must be at least one Claim that corresponds to at least one Premise proposition.
           (premisePropositionIds & claimPropositionIds).size - premisePropositionIds.size match {
             case 0 => {
-              val originalDeductionResult: DeductionResult = result.deductionResultMap.get(CLAIM.index.toString).get
+              //val originalDeductionResult: DeductionResult = result.deductionResultMap.get(CLAIM.index.toString).get
+              val originalDeductionResult: DeductionResult = result.deductionResult
               val updateDeductionResult: DeductionResult = DeductionResult(
                 status = originalDeductionResult.status,
                 matchedPropositionInfoList = originalDeductionResult.matchedPropositionInfoList,
                 deductionUnit = originalDeductionResult.deductionUnit,
+                coveredPropositionResult = originalDeductionResult.coveredPropositionResult,
                 havePremiseInGivenProposition = true
               )
               AnalyzedSentenceObject(
                 nodeMap = result.nodeMap,
                 edgeList = result.edgeList,
                 knowledgeBaseSemiGlobalNode = result.knowledgeBaseSemiGlobalNode,
-                deductionResultMap = result.deductionResultMap.updated(CLAIM.index.toString, updateDeductionResult))
+                deductionResult = updateDeductionResult
+              )
             }
             case _ => result
           }
