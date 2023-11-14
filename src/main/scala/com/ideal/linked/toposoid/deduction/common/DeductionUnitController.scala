@@ -136,16 +136,16 @@ trait DeductionUnitController extends LazyLogging {
 
     val claimMatchedPropositionInfo: List[MatchedPropositionInfo] = neo4jRecords.records.foldLeft(List.empty[MatchedPropositionInfo]) {
       (acc, x) => {
-        val surface1: String = x(0).value.logicNode.predicateArgumentStructure.surface
-        val caseStr: String = x(1).value.logicEdge.caseStr
-        val surface2: String = x(2).value.logicNode.predicateArgumentStructure.surface
+        val surface1: String = x(0).value.localNode.get.predicateArgumentStructure.surface
+        val caseStr: String = x(1).value.localEdge.get.caseStr
+        val surface2: String = x(2).value.localNode.get.predicateArgumentStructure.surface
         val query = "MATCH (n1:ClaimNode)-[e:ClaimEdge]->(n2:ClaimNode) WHERE n1.surface='%s' AND e.caseName='%s' AND n2.surface='%s' RETURN n1, e, n2".format(surface1, caseStr, surface2)
         val jsonStr: String = getCypherQueryResult(query, "")
         val neo4jRecordsForClaim: Neo4jRecords = Json.parse(jsonStr).as[Neo4jRecords]
         val additionalMatchedPropositionInfo = neo4jRecordsForClaim.records.foldLeft(List.empty[MatchedPropositionInfo]) {
           (acc2, x2) => {
-            val propositionId = x2.head.value.logicNode.propositionId
-            val sentenceId = x2.head.value.logicNode.sentenceId
+            val propositionId = x2.head.value.localNode.get.propositionId
+            val sentenceId = x2.head.value.localNode.get.sentenceId
             val matchedFeatureInfo = MatchedFeatureInfo(sentenceId, 1)
             acc2 :+ MatchedPropositionInfo(propositionId, List(matchedFeatureInfo))
           }
@@ -229,20 +229,6 @@ trait DeductionUnitController extends LazyLogging {
       result
     }
   }
-  /*
-  private def getPropositionIdsInDeductionPremiseResult(asos:List[AnalyzedSentenceObject]):List[String] ={
-    //もし前提がある命題であれば、その演繹結果を取得
-    val premisePropositions: List[AnalyzedSentenceObject] = asos.filter(x => x.knowledgeFeatureNode.sentenceType == PREMISE.index).size match {
-      case 0 => List.empty[AnalyzedSentenceObject]
-      case _ => asos.filter(x => x.knowledgeFeatureNode.sentenceType == PREMISE.index)
-    }
-    val premiseDeductionResult: List[DeductionResult] = premisePropositions.filter(_.deductionResultMap.get(PREMISE.index.toString).get.status).size match {
-      case 0 => List.empty[DeductionResult]
-      case _ => premisePropositions.filter(_.deductionResultMap.get(PREMISE.index.toString).get.status).map(_.deductionResultMap.get(PREMISE.index.toString).get)
-    }
-    premiseDeductionResult.map(_.matchedPropositionInfoList.map(_.propositionId)).flatten
-  }
-  */
 }
 
 
