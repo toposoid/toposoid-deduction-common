@@ -114,7 +114,7 @@ trait DeductionUnitController extends LazyLogging {
     //Search for the one that has the corresponding ClaimId and has a premise
     targetMatchedPropositionInfoList.foldLeft(List.empty[MatchedPropositionInfo]) {
       (acc, x) => {
-        val query = "MATCH (n1:PremiseNode)-[e:PremiseEdge]->(n2:PremiseNode) WHERE n1.propositionId='%s' AND n2.propositionId='%s' RETURN n1, e, n2".format(x.propositionId, x.propositionId)
+        val query = "MATCH (n1:PremiseNode)-[e:LocalEdge]->(n2:PremiseNode) WHERE n1.propositionId='%s' AND n2.propositionId='%s' RETURN n1, e, n2".format(x.propositionId, x.propositionId)
         val jsonStr = FacadeForAccessNeo4J.getCypherQueryResult(query, "x")
         val neo4jRecords: Neo4jRecords = Json.parse(jsonStr).as[Neo4jRecords]
         val resultMatchedPropositionInfoList = neo4jRecords.records.size match {
@@ -139,7 +139,7 @@ trait DeductionUnitController extends LazyLogging {
         val surface1: String = x(0).value.localNode.get.predicateArgumentStructure.surface
         val caseStr: String = x(1).value.localEdge.get.caseStr
         val surface2: String = x(2).value.localNode.get.predicateArgumentStructure.surface
-        val query = "MATCH (n1:ClaimNode)-[e:ClaimEdge]->(n2:ClaimNode) WHERE n1.surface='%s' AND e.caseName='%s' AND n2.surface='%s' RETURN n1, e, n2".format(surface1, caseStr, surface2)
+        val query = "MATCH (n1:ClaimNode)-[e:LocalEdge]->(n2:ClaimNode) WHERE n1.surface='%s' AND e.caseName='%s' AND n2.surface='%s' RETURN n1, e, n2".format(surface1, caseStr, surface2)
         val jsonStr: String = getCypherQueryResult(query, "")
         val neo4jRecordsForClaim: Neo4jRecords = Json.parse(jsonStr).as[Neo4jRecords]
         val additionalMatchedPropositionInfo = neo4jRecordsForClaim.records.foldLeft(List.empty[MatchedPropositionInfo]) {
