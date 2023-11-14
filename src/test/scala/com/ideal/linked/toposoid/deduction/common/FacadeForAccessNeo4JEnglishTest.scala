@@ -52,11 +52,18 @@ class FacadeForAccessNeo4JEnglishTest extends AnyFlatSpec with BeforeAndAfter wi
     val query:String = "MATCH (n) WHERE n.lang='en_US' RETURN n"
     val result:String = FacadeForAccessNeo4J.getCypherQueryResult(query, "")
     val neo4jRecords: Neo4jRecords = Json.parse(result).as[Neo4jRecords]
-    val sentenceMap: List[(Int, String)] = neo4jRecords.records.reverse.map(record => {
-      record.filter(x => x.key.equals("n")).map(y =>
-        y.value.logicNode.predicateArgumentStructure.currentId -> y.value.logicNode.predicateArgumentStructure.surface
-      ).head
-    })
+    val sentenceMap: List[(Int, String)] = neo4jRecords.records.reverse.foldLeft(List.empty[(Int, String)]) {
+      (acc, record) => {
+        acc ::: record.filter(x => x.key.equals("n")).foldLeft(List.empty[(Int, String)]) {
+          (acc2, y) => {
+            y.value.localNode match {
+              case Some(z) => acc2 :+ (z.predicateArgumentStructure.currentId -> z.predicateArgumentStructure.surface)
+              case _ => acc2
+            }
+          }
+        }
+      }
+    }
     val sentence: String = sentenceMap.toSeq.sortBy(_._1).foldLeft("") { (acc, x) => acc + " " + x._2 }
     assert(sentence.trim.equals("Time is money ."))
 

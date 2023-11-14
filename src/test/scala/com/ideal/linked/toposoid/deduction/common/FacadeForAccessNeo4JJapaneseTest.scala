@@ -17,8 +17,8 @@
 package com.ideal.linked.toposoid.deduction.common
 
 import com.ideal.linked.data.accessor.neo4j.Neo4JAccessor
-import com.ideal.linked.toposoid.knowledgebase.regist.model.{Knowledge, KnowledgeSentenceSet, PropositionRelation}
-import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects, MatchedFeatureInfo, MatchedPropositionInfo}
+import com.ideal.linked.toposoid.knowledgebase.regist.model.{Knowledge, PropositionRelation}
+import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObjects}
 import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
 import com.ideal.linked.toposoid.protocol.model.parser.{KnowledgeForParser, KnowledgeSentenceSetForParser}
 import com.ideal.linked.toposoid.sentence.transformer.neo4j.Sentence2Neo4jTransformer
@@ -52,14 +52,21 @@ class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter w
     val query:String = "MATCH (n) WHERE n.lang='ja_JP' RETURN n"
     val result:String = FacadeForAccessNeo4J.getCypherQueryResult(query, "")
     val neo4jRecords: Neo4jRecords = Json.parse(result).as[Neo4jRecords]
-    val sentenceMap: List[(Int, String)] = neo4jRecords.records.reverse.map(record => {
-      record.filter(x => x.key.equals("n")).map(y =>
-        y.value.logicNode.predicateArgumentStructure.currentId -> y.value.logicNode.predicateArgumentStructure.surface
-      ).head
-    })
+
+    val sentenceMap: List[(Int, String)] = neo4jRecords.records.reverse.foldLeft(List.empty[(Int, String)]) {
+      (acc, record) => {
+        acc ::: record.filter(x => x.key.equals("n")).foldLeft(List.empty[(Int, String)]) {
+          (acc2, y) => {
+            y.value.localNode match {
+              case Some(z) => acc2 :+ (z.predicateArgumentStructure.currentId -> z.predicateArgumentStructure.surface)
+              case _ => acc2
+            }
+          }
+        }
+      }
+    }
     val sentence: String = sentenceMap.toSeq.sortBy(_._1).foldLeft("") { (acc, x) => acc + x._2 }
     assert(sentence.equals("案ずるより産むが易し。"))
-
   }
 
   "Neo4j data" should "be properly converted to AnalyzedSentenceObject Type" in {
