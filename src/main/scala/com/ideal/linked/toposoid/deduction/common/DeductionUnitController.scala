@@ -114,7 +114,7 @@ trait DeductionUnitController extends LazyLogging {
     //Search for the one that has the corresponding ClaimId and has a premise
     targetMatchedPropositionInfoList.foldLeft(List.empty[MatchedPropositionInfo]) {
       (acc, x) => {
-        val query = "MATCH (n1:PremiseNode)-[e:LocalEdge]->(n2:PremiseNode) WHERE n1.propositionId='%s' AND n2.propositionId='%s' RETURN n1, e, n2".format(x.propositionId, x.propositionId)
+        val query = "MATCH (n1:PremiseNode)-[e:LocalEdge{logicType:'-'}]->(n2:PremiseNode) WHERE n1.propositionId='%s' AND n2.propositionId='%s' RETURN n1, e, n2".format(x.propositionId, x.propositionId)
         val jsonStr = FacadeForAccessNeo4J.getCypherQueryResult(query, "x")
         val neo4jRecords: Neo4jRecords = Json.parse(jsonStr).as[Neo4jRecords]
         val resultMatchedPropositionInfoList = neo4jRecords.records.size match {
