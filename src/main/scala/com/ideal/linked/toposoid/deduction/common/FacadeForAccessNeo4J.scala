@@ -96,7 +96,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
           localContext = node2.localContext)
 
         val edge: KnowledgeBaseEdge = x(1).value.localEdge.get
-        val logicEdge: KnowledgeBaseEdge = KnowledgeBaseEdge(node1.nodeId, node2.nodeId, edge.caseStr, edge.dependType, edge.logicType)
+        val logicEdge: KnowledgeBaseEdge = KnowledgeBaseEdge(node1.nodeId, node2.nodeId, edge.caseStr, edge.dependType, edge.parallelType, edge.hasInclusion, edge.logicType)
         val nodeMap:Map[String, KnowledgeBaseNode] = acc._1 ++ Map(node1.nodeId -> knowledgeBaseNode1) ++ Map(node2.nodeId -> knowledgeBaseNode2)
         val edgeList:List[KnowledgeBaseEdge] = acc._2 :+ logicEdge
         (nodeMap, edgeList)
@@ -166,7 +166,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
 
 
           val edge:KnowledgeBaseEdge = x(1).value.localEdge.get
-          val logicEdge:KnowledgeBaseEdge = KnowledgeBaseEdge(node1.nodeId,node2.nodeId, edge.caseStr, edge.dependType, edge.logicType)
+          val logicEdge:KnowledgeBaseEdge = KnowledgeBaseEdge(node1.nodeId,node2.nodeId, edge.caseStr, edge.dependType, edge.parallelType, edge.hasInclusion, edge.logicType)
 
           val dataInfo:(Map[String, KnowledgeBaseNode], List[KnowledgeBaseEdge]) = acc.isDefinedAt(key) match {
             case true => acc.get(key).get
