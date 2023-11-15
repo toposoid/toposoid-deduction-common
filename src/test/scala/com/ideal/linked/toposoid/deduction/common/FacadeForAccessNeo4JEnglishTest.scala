@@ -18,7 +18,6 @@ package com.ideal.linked.toposoid.deduction.common
 
 import com.ideal.linked.data.accessor.neo4j.Neo4JAccessor
 import com.ideal.linked.toposoid.knowledgebase.regist.model.{Knowledge, PropositionRelation}
-import com.ideal.linked.toposoid.protocol.model.base.{MatchedFeatureInfo, MatchedPropositionInfo}
 import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
 import com.ideal.linked.toposoid.protocol.model.parser.{KnowledgeForParser, KnowledgeSentenceSetForParser}
 import com.ideal.linked.toposoid.sentence.transformer.neo4j.Sentence2Neo4jTransformer
@@ -87,25 +86,4 @@ class FacadeForAccessNeo4JEnglishTest extends AnyFlatSpec with BeforeAndAfter wi
     })
 
   }
-  /*
-  "havePremiseNode" should "be handled properly" in {
-    val propositionId1 =  UUID.random.toString
-    val sentenceId1 = UUID.random.toString
-    val knowledgeForParser = KnowledgeForParser(propositionId1, sentenceId1, Knowledge("Time is money.","en_US", "{}", false ))
-    registSingleClaim(knowledgeForParser)
-    assert(FacadeForAccessNeo4J.havePremiseNode(MatchedPropositionInfo(propositionId1,List.empty[MatchedFeatureInfo])) == false)
-    val propositionId2 =  UUID.random.toString
-    val sentenceId2 = UUID.random.toString
-    val sentenceId3 = UUID.random.toString
-
-    val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
-      List(KnowledgeForParser(propositionId2, sentenceId2, Knowledge("Fear often exaggerates danger.","en_US", "{}"))),
-      List.empty[PropositionRelation],
-      List(KnowledgeForParser(propositionId2, sentenceId3, Knowledge("Grasp Fortune by the forelock.","en_US", "{}"))),
-      List.empty[PropositionRelation])
-    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
-    assert(FacadeForAccessNeo4J.havePremiseNode(MatchedPropositionInfo(propositionId2,List.empty[MatchedFeatureInfo])) == true)
-  }
-  */
-
 }
