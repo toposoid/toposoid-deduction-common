@@ -29,7 +29,7 @@ import play.api.mvc._
 trait DeductionUnitController extends LazyLogging {
   protected def execute: Action[JsValue]
 
-  protected def analyzeGraphKnowledge(edge: KnowledgeBaseEdge, nodeMap: Map[String, KnowledgeBaseNode], sentenceType: Int, accParent: (List[List[Neo4jRecordMap]], List[MatchedPropositionInfo], List[CoveredPropositionEdge])): (List[List[Neo4jRecordMap]], List[MatchedPropositionInfo], List[CoveredPropositionEdge])
+  protected def analyzeGraphKnowledge(edge: KnowledgeBaseEdge, aso:AnalyzedSentenceObject, accParent: (List[List[Neo4jRecordMap]], List[MatchedPropositionInfo], List[CoveredPropositionEdge])): (List[List[Neo4jRecordMap]], List[MatchedPropositionInfo], List[CoveredPropositionEdge])
 
   /**
    * final check
@@ -182,7 +182,7 @@ trait DeductionUnitController extends LazyLogging {
   def analyze(aso: AnalyzedSentenceObject, asos: List[AnalyzedSentenceObject], deductionUnitName:String): AnalyzedSentenceObject = {
 
     val (searchResults, propositionIdInfoList, coveredPropositionEdgeList) = aso.edgeList.foldLeft((List.empty[List[Neo4jRecordMap]], List.empty[MatchedPropositionInfo], List.empty[CoveredPropositionEdge])) {
-      (acc, x) => analyzeGraphKnowledge(x, aso.nodeMap, aso.knowledgeBaseSemiGlobalNode.sentenceType, acc)
+      (acc, x) => analyzeGraphKnowledge(x, aso, acc)
     }
     if (propositionIdInfoList.size == 0) return aso
     val result = checkFinal(propositionIdInfoList, aso, searchResults, deductionUnitName, coveredPropositionEdgeList)
