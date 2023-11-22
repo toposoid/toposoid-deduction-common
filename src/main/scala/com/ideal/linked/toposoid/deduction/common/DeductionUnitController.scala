@@ -39,7 +39,7 @@ trait DeductionUnitController extends LazyLogging {
    * @param searchResults
    * @return
    */
-  private def checkFinal(targetMatchedPropositionInfoList: List[MatchedPropositionInfo], aso: AnalyzedSentenceObject, searchResults: List[List[Neo4jRecordMap]], deductionUnitName:String, coveredPropositionEdgeList:List[CoveredPropositionEdge] ): AnalyzedSentenceObject = {
+  private def checkFinal(targetMatchedPropositionInfoList: List[MatchedPropositionInfo], aso: AnalyzedSentenceObject, deductionUnitName:String, coveredPropositionEdgeList:List[CoveredPropositionEdge] ): AnalyzedSentenceObject = {
 
     val updatedCoveredPropositionResult = updateCoveredPropositionResult(aso.deductionResult, coveredPropositionEdgeList, aso.knowledgeBaseSemiGlobalNode, deductionUnitName)
     val updateDeductionResult: DeductionResult = new DeductionResult(
@@ -185,7 +185,7 @@ trait DeductionUnitController extends LazyLogging {
       (acc, x) => analyzeGraphKnowledge(x, aso, acc)
     }
     if (propositionIdInfoList.size == 0) return aso
-    val result = checkFinal(propositionIdInfoList, aso, searchResults, deductionUnitName, coveredPropositionEdgeList)
+    val result = checkFinal(propositionIdInfoList, aso, deductionUnitName, coveredPropositionEdgeList)
 
     //This process requires that the Premise has already finished in calculating the DeductionResult
     if (aso.knowledgeBaseSemiGlobalNode.sentenceType == CLAIM.index) {
