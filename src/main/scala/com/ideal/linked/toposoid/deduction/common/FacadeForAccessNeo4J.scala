@@ -102,14 +102,15 @@ object FacadeForAccessNeo4J extends LazyLogging{
         (nodeMap, edgeList)
       }
     }
-
+    /*
     val coveredPropositionResult: CoveredPropositionResult = CoveredPropositionResult(
       "",
       propositionId,
       sentenceId,
       List.empty[CoveredPropositionEdge]
     )
-    val deductionResult: DeductionResult = DeductionResult (false, List.empty[MatchedPropositionInfo], "", coveredPropositionResult)
+     */
+    val deductionResult: DeductionResult = DeductionResult (false, List.empty[MatchedPropositionInfo], coveredPropositionResults = List.empty[CoveredPropositionResult])
 
     val localContextForFeature: LocalContextForFeature = LocalContextForFeature(lang, List.empty[KnowledgeFeatureReference])
     val tmpKnowledgeBaseSemiGlobalNode: KnowledgeBaseSemiGlobalNode = KnowledgeBaseSemiGlobalNode(
@@ -192,13 +193,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
         localContextForFeature
       )
 
-      val coveredPropositionResult: CoveredPropositionResult = CoveredPropositionResult(
-        "",
-        propositionId,
-        sentenceId,
-        List.empty[CoveredPropositionEdge]
-      )
-      val deductionResult: DeductionResult = DeductionResult(false, List.empty[MatchedPropositionInfo], "", coveredPropositionResult)
+      val deductionResult: DeductionResult = DeductionResult(false, List.empty[MatchedPropositionInfo], List.empty[CoveredPropositionResult])
 
       val aso = AnalyzedSentenceObject(x._2._1, x._2._2, tmpKnowledgeFeatureNode,  deductionResult)
       val sentenceMap = makeSentence(aso)

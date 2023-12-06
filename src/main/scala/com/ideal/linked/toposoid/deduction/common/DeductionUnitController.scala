@@ -18,7 +18,7 @@ package com.ideal.linked.toposoid.deduction.common
 
 import com.ideal.linked.toposoid.common.{CLAIM, PREMISE}
 import com.ideal.linked.toposoid.deduction.common.FacadeForAccessNeo4J.getCypherQueryResult
-import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, KnowledgeBaseSemiGlobalNode}
+import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge,KnowledgeBaseSemiGlobalNode}
 import com.ideal.linked.toposoid.protocol.model.base.{CoveredPropositionResult, _}
 import com.ideal.linked.toposoid.protocol.model.neo4j.{Neo4jRecordMap, Neo4jRecords}
 import com.typesafe.scalalogging.LazyLogging
@@ -41,12 +41,11 @@ trait DeductionUnitController extends LazyLogging {
    */
   private def checkFinal(targetMatchedPropositionInfoList: List[MatchedPropositionInfo], aso: AnalyzedSentenceObject, deductionUnitName:String, coveredPropositionEdgeList:List[CoveredPropositionEdge] ): AnalyzedSentenceObject = {
 
-    val updatedCoveredPropositionResult = updateCoveredPropositionResult(aso.deductionResult, coveredPropositionEdgeList, aso.knowledgeBaseSemiGlobalNode, deductionUnitName)
+    val updatedCoveredPropositionResults = addCoveredPropositionResults(aso.deductionResult, coveredPropositionEdgeList, aso.knowledgeBaseSemiGlobalNode, deductionUnitName)
     val updateDeductionResult: DeductionResult = new DeductionResult(
       aso.deductionResult.status,
       aso.deductionResult.matchedPropositionInfoList,
-      aso.deductionResult.deductionUnit,
-      updatedCoveredPropositionResult,
+      updatedCoveredPropositionResults,
       aso.deductionResult.havePremiseInGivenProposition
     )
     val updateAso = AnalyzedSentenceObject(aso.nodeMap, aso.edgeList, aso.knowledgeBaseSemiGlobalNode, updateDeductionResult)
@@ -76,19 +75,20 @@ trait DeductionUnitController extends LazyLogging {
 
     val status = true
     //selectedPropositions includes trivialClaimsPropositionIds
-    val deductionResult: DeductionResult = new DeductionResult(status, finalPropositionInfoList, deductionUnitName, updatedCoveredPropositionResult)
+    val deductionResult: DeductionResult = new DeductionResult(status, finalPropositionInfoList, updatedCoveredPropositionResults)
     //val updateDeductionResult = aso.deductionResult.updated(aso.knowledgeBaseSemiGlobalNode.sentenceType.toString, deductionResult)
     AnalyzedSentenceObject(aso.nodeMap, aso.edgeList, aso.knowledgeBaseSemiGlobalNode, deductionResult)
 
   }
 
-  private def updateCoveredPropositionResult(deductionResult:DeductionResult, coveredPropositionEdgeList:List[CoveredPropositionEdge], knowledgeBaseSemiGlobalNode:KnowledgeBaseSemiGlobalNode, deductionUnitName:String): CoveredPropositionResult = {
-    //もし該当のDeductionUnitが多く被覆していたらその情報を置き換える。
-    if(deductionResult.coveredPropositionResult.coveredPropositionEdges.size >= coveredPropositionEdgeList.size) {
-      deductionResult.coveredPropositionResult
-    }else{
-      CoveredPropositionResult(deductionUnit = deductionUnitName, propositionId = knowledgeBaseSemiGlobalNode.propositionId, sentenceId = knowledgeBaseSemiGlobalNode.propositionId, coveredPropositionEdges = coveredPropositionEdgeList)
-    }
+  private def addCoveredPropositionResults(deductionResult:DeductionResult, coveredPropositionEdgeList:List[CoveredPropositionEdge], knowledgeBaseSemiGlobalNode:KnowledgeBaseSemiGlobalNode, deductionUnitName:String): List[CoveredPropositionResult] = {
+
+    val coveredPropositionResult = CoveredPropositionResult(
+      deductionUnit = deductionUnitName,
+      propositionId = knowledgeBaseSemiGlobalNode.propositionId,
+      sentenceId = knowledgeBaseSemiGlobalNode.sentenceId,
+      coveredPropositionEdges = coveredPropositionEdgeList)
+    deductionResult.coveredPropositionResults :+ coveredPropositionResult
   }
   /**
    *
@@ -180,8 +180,9 @@ trait DeductionUnitController extends LazyLogging {
    * @return
    */
   def analyze(aso: AnalyzedSentenceObject, asos: List[AnalyzedSentenceObject], deductionUnitName:String): AnalyzedSentenceObject = {
-
+    //TODO:aso.edgeListを限定する。
     val (searchResults, propositionIdInfoList, coveredPropositionEdgeList) = aso.edgeList.foldLeft((List.empty[List[Neo4jRecordMap]], List.empty[MatchedPropositionInfo], List.empty[CoveredPropositionEdge])) {
+      //TODO:すでにaso.deductionResult.coveredPropositionResultsとかぶっているエッジはスキップする。ただし、一番多いpropostionIdを持つものに限る　→　aso.deductionResult.matchedPropositionInfoList
       (acc, x) => analyzeGraphKnowledge(x, aso, acc)
     }
     if (propositionIdInfoList.size == 0) return aso
@@ -210,8 +211,7 @@ trait DeductionUnitController extends LazyLogging {
               val updateDeductionResult: DeductionResult = DeductionResult(
                 status = originalDeductionResult.status,
                 matchedPropositionInfoList = originalDeductionResult.matchedPropositionInfoList,
-                deductionUnit = originalDeductionResult.deductionUnit,
-                coveredPropositionResult = originalDeductionResult.coveredPropositionResult,
+                coveredPropositionResults = originalDeductionResult.coveredPropositionResults,
                 havePremiseInGivenProposition = true
               )
               AnalyzedSentenceObject(
