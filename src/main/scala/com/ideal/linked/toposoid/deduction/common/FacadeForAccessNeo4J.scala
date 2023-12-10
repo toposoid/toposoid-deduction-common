@@ -27,7 +27,7 @@ import com.ideal.linked.common.DeploymentConverter.conf
 import com.ideal.linked.toposoid.common.{CLAIM, LOCAL, PREDICATE_ARGUMENT, PREMISE, ToposoidUtils}
 import com.ideal.linked.toposoid.deduction.common.AnalyzedSentenceObjectUtils.makeSentence
 import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, KnowledgeBaseSemiGlobalNode, KnowledgeFeatureReference, LocalContextForFeature}
-import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects, CoveredPropositionEdge, CoveredPropositionResult, DeductionResult, MatchedPropositionInfo}
+import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects, CoveredPropositionResult, DeductionResult}
 import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
 import com.typesafe.scalalogging.LazyLogging
 
@@ -110,7 +110,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
       List.empty[CoveredPropositionEdge]
     )
      */
-    val deductionResult: DeductionResult = DeductionResult (false, List.empty[MatchedPropositionInfo], coveredPropositionResults = List.empty[CoveredPropositionResult])
+    val deductionResult: DeductionResult = DeductionResult (false, coveredPropositionResults = List.empty[CoveredPropositionResult])
 
     val localContextForFeature: LocalContextForFeature = LocalContextForFeature(lang, List.empty[KnowledgeFeatureReference])
     val tmpKnowledgeBaseSemiGlobalNode: KnowledgeBaseSemiGlobalNode = KnowledgeBaseSemiGlobalNode(
@@ -193,7 +193,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
         localContextForFeature
       )
 
-      val deductionResult: DeductionResult = DeductionResult(false, List.empty[MatchedPropositionInfo], List.empty[CoveredPropositionResult])
+      val deductionResult: DeductionResult = DeductionResult(false, List.empty[CoveredPropositionResult])
 
       val aso = AnalyzedSentenceObject(x._2._1, x._2._2, tmpKnowledgeFeatureNode,  deductionResult)
       val sentenceMap = makeSentence(aso)
