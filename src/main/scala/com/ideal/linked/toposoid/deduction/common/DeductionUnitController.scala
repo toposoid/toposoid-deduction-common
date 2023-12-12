@@ -29,11 +29,11 @@ import play.api.mvc._
 trait DeductionUnitController extends LazyLogging {
   protected def execute: Action[JsValue]
 
-  protected def analyzeGraphKnowledge(edge: KnowledgeBaseEdge, aso:AnalyzedSentenceObject, accParent: List[CoveredPropositionResult]): List[CoveredPropositionResult]
+  protected def analyzeGraphKnowledge(edge: KnowledgeBaseEdge, aso:AnalyzedSentenceObject, accParent: List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)]): List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)]
 
-  private def getMergedKnowledgeBaseSideInfo(coveredPropositionResults: List[CoveredPropositionResult], confirmedCoveredPropositionResults:List[CoveredPropositionResult]):List[KnowledgeBaseSideInfo] = {
-    val knowledgeBaseSideInfoList = coveredPropositionResults.map(_.knowledgeBaseSideInfo)
-    val confirmedKnowledgeBaseSideInfoList = confirmedCoveredPropositionResults.map(_.knowledgeBaseSideInfo)
+  private def getMergedKnowledgeBaseSideInfo(coveredPropositionResults: List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)], confirmedCoveredPropositionResults:List[CoveredPropositionResult]):List[KnowledgeBaseSideInfo] = {
+    val knowledgeBaseSideInfoList = coveredPropositionResults.map(_._1)
+    val confirmedKnowledgeBaseSideInfoList:List[KnowledgeBaseSideInfo] = confirmedCoveredPropositionResults.map(_.knowledgeBaseSideInfoList).flatten
     knowledgeBaseSideInfoList ++ confirmedKnowledgeBaseSideInfoList
   }
 
@@ -45,9 +45,8 @@ trait DeductionUnitController extends LazyLogging {
    * @param searchResults
    * @return
    */
-  private def checkFinal(aso: AnalyzedSentenceObject, deductionUnitName:String, unsettledCoveredPropositionResults:List[CoveredPropositionResult] ): AnalyzedSentenceObject = {
+  private def checkFinal(aso: AnalyzedSentenceObject, deductionUnitName:String, unsettledCoveredPropositionResults:List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)] ): AnalyzedSentenceObject = {
 
-    //TODO:ではどこのタイミングで、評価できるか？　propositionIdが定まった時。
     //The targetMatchedPropositionInfoList contains duplicate propositionIds.
     //Pick up the most frequent propositionId
     val mergedKnowledgeBaseSideInfo =  getMergedKnowledgeBaseSideInfo(unsettledCoveredPropositionResults, aso.deductionResult.coveredPropositionResults)
@@ -84,13 +83,28 @@ trait DeductionUnitController extends LazyLogging {
     //TODO:Imageがついているかどうかで最終的に判断する必要がある。
     val status = true
     //selectedPropositions includes trivialClaimsPropositionIds
-    val deductionResult: DeductionResult = new DeductionResult(status, updatedCoveredPropositionResults)
+    val updatedCoveredPropositionResults2 = updatedCoveredPropositionResults.foldLeft(List.empty[CoveredPropositionResult]){
+      (acc, x) => {
+        if(x.deductionUnit.equals(deductionUnitName)){
+          acc :+ CoveredPropositionResult(
+            deductionUnit = x.deductionUnit,
+            propositionId = x.propositionId,
+            sentenceId = x.sentenceId,
+            coveredPropositionEdges = x.coveredPropositionEdges,
+            knowledgeBaseSideInfoList = finalPropositionInfoList)
+        }else{
+          acc :+ x
+        }
+      }
+    }
+
+    val deductionResult: DeductionResult = new DeductionResult(status, updatedCoveredPropositionResults2)
     //val updateDeductionResult = aso.deductionResult.updated(aso.knowledgeBaseSemiGlobalNode.sentenceType.toString, deductionResult)
     AnalyzedSentenceObject(aso.nodeMap, aso.edgeList, aso.knowledgeBaseSemiGlobalNode, deductionResult)
 
   }
 
-  private def addCoveredPropositionResults(mergedKnowledgeBaseSideInfo:List[KnowledgeBaseSideInfo] , deductionResult:DeductionResult, unsettledCoveredPropositionResults:List[CoveredPropositionResult], knowledgeBaseSemiGlobalNode:KnowledgeBaseSemiGlobalNode, deductionUnitName:String): List[CoveredPropositionResult] = {
+  private def addCoveredPropositionResults(mergedKnowledgeBaseSideInfo:List[KnowledgeBaseSideInfo] , deductionResult:DeductionResult, unsettledCoveredPropositionResults:List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)], knowledgeBaseSemiGlobalNode:KnowledgeBaseSemiGlobalNode, deductionUnitName:String): List[CoveredPropositionResult] = {
 
     //TODO:もっと良い方法がないか見直し
     val dupFreq = mergedKnowledgeBaseSideInfo.groupBy(identity).filter(x => x._2.size > deductionResult.coveredPropositionResults.size)
@@ -98,21 +112,19 @@ trait DeductionUnitController extends LazyLogging {
     val minFreqSize = dupFreq.mapValues(_.size).minBy(_._2)._2
     val propositionIdsHavingMinFreq: List[KnowledgeBaseSideInfo] = mergedKnowledgeBaseSideInfo.groupBy(identity).mapValues(_.size).filter(_._2 == minFreqSize).map(_._1).toList
 
-    val filteredCoveredPropositionResults:List[CoveredPropositionResult] =  unsettledCoveredPropositionResults.filter(x =>
-      x.propositionId.equals(propositionIdsHavingMinFreq.head.propositionId) && x.sentenceId.equals(propositionIdsHavingMinFreq.head.sentenceId))
-
-    val knowledgeBaseSideInfo = KnowledgeBaseSideInfo(
-      propositionId = propositionIdsHavingMinFreq.head.propositionId,
-      sentenceId = propositionIdsHavingMinFreq.head.sentenceId,
-      featureInfoList = propositionIdsHavingMinFreq.head.featureInfoList
-    )
+    val filteredCoveredPropositionEdges:List[CoveredPropositionEdge] = unsettledCoveredPropositionResults.filter(
+      x => {
+        propositionIdsHavingMinFreq.contains(x._1)
+      }).map(y => {
+          y._2
+      })
 
     val coveredPropositionResult = CoveredPropositionResult(
       deductionUnit = deductionUnitName,
       propositionId = knowledgeBaseSemiGlobalNode.propositionId,
       sentenceId = knowledgeBaseSemiGlobalNode.sentenceId,
-      coveredPropositionEdges = filteredCoveredPropositionResults.map(_.coveredPropositionEdges).flatten,
-      knowledgeBaseSideInfo = knowledgeBaseSideInfo
+      coveredPropositionEdges = filteredCoveredPropositionEdges,
+      knowledgeBaseSideInfoList = propositionIdsHavingMinFreq
       )
 
     deductionResult.coveredPropositionResults :+ coveredPropositionResult
@@ -230,7 +242,7 @@ trait DeductionUnitController extends LazyLogging {
    */
   def analyze(aso: AnalyzedSentenceObject, asos: List[AnalyzedSentenceObject], deductionUnitName:String): AnalyzedSentenceObject = {
     //Excluding those for which the existence of links has already been confirmed in edgeList
-    val coveredPropositionResults = getUnsettledEdges(aso).foldLeft(List.empty[CoveredPropositionResult]) {
+    val coveredPropositionResults = getUnsettledEdges(aso).foldLeft(List.empty[(KnowledgeBaseSideInfo, CoveredPropositionEdge)]) {
       (acc, x) => analyzeGraphKnowledge(x, aso, acc)
     }
     if (coveredPropositionResults.size == 0) return aso
@@ -246,11 +258,11 @@ trait DeductionUnitController extends LazyLogging {
         case 0 => result
         case _ => {
           //val premiseDeductionResults: List[DeductionResult] = asos.map(x => x.deductionResultMap.get(PREMISE.index.toString).get)
-          val knowledgeBaseSideInfoList: List[KnowledgeBaseSideInfo] = premiseDeductionResults.map(_.coveredPropositionResults.map(_.knowledgeBaseSideInfo)).flatten
+          val knowledgeBaseSideInfoList: List[KnowledgeBaseSideInfo] = premiseDeductionResults.map(_.coveredPropositionResults.map(_.knowledgeBaseSideInfoList).flatten).flatten
           val premisePropositionIds: Set[String] = knowledgeBaseSideInfoList.map(_.propositionId).toSet
           //val claimPropositionIds: Set[String] = result.deductionResultMap.get(CLAIM.index.toString).get.matchedPropositionInfoList.map(_.propositionId).toSet[String]
           //Depending on the conditions, the result is claim information.
-          val claimPropositionIds:Set[String] = result.deductionResult.coveredPropositionResults.map(_.knowledgeBaseSideInfo.propositionId).toSet[String]
+          val claimPropositionIds:Set[String] = result.deductionResult.coveredPropositionResults.map(_.knowledgeBaseSideInfoList.map(_.propositionId)).flatten.toSet[String]
           //There must be at least one Claim that corresponds to at least one Premise proposition.
           (premisePropositionIds & claimPropositionIds).size - premisePropositionIds.size match {
             case 0 => {
