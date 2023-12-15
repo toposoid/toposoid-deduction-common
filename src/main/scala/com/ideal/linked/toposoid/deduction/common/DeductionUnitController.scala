@@ -59,15 +59,15 @@ trait DeductionUnitController extends LazyLogging {
     )
     val updateAso = AnalyzedSentenceObject(aso.nodeMap, aso.edgeList, aso.knowledgeBaseSemiGlobalNode, updateDeductionResult)
 
-    val dupFreq = mergedKnowledgeBaseSideInfo.groupBy(identity).filter(x => x._2.size >= aso.edgeList.size)
+    val dupFreq = mergedKnowledgeBaseSideInfo.map(_.propositionId).groupBy(identity).filter(x => x._2.size >= aso.edgeList.size)
     if (dupFreq.size == 0) return updateAso
 
     //被覆サイズが最小のものを選ぶ。
     val minFreqSize = dupFreq.mapValues(_.size).minBy(_._2)._2
-    val propositionIdsHavingMinFreq: List[KnowledgeBaseSideInfo] = mergedKnowledgeBaseSideInfo.groupBy(identity).mapValues(_.size).filter(_._2 == minFreqSize).map(_._1).toList
+    val propositionIdsHavingMinFreq: List[String] = mergedKnowledgeBaseSideInfo.map(_.propositionId).groupBy(identity).mapValues(_.size).filter(_._2 == minFreqSize).map(_._1).toList
     logger.debug(propositionIdsHavingMinFreq.toString())
 
-    val coveredPropositionInfoList = propositionIdsHavingMinFreq
+    val coveredPropositionInfoList = mergedKnowledgeBaseSideInfo.filter(x =>  propositionIdsHavingMinFreq.contains(x.propositionId))
     //Does the chosen proposalId have a premise? T
     //he coveredPropositionInfoList contains a mixture of those that are established only by Claims and those that have Premise.
     val propositionInfoListHavingPremise: List[KnowledgeBaseSideInfo] = coveredPropositionInfoList.filter(havePremise(_))
@@ -107,7 +107,7 @@ trait DeductionUnitController extends LazyLogging {
   private def addCoveredPropositionResults(mergedKnowledgeBaseSideInfo:List[KnowledgeBaseSideInfo] , deductionResult:DeductionResult, unsettledCoveredPropositionResults:List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)], knowledgeBaseSemiGlobalNode:KnowledgeBaseSemiGlobalNode, deductionUnitName:String): List[CoveredPropositionResult] = {
 
     //TODO:もっと良い方法がないか見直し
-    val dupFreq = mergedKnowledgeBaseSideInfo.groupBy(identity).filter(x => x._2.size > deductionResult.coveredPropositionResults.size)
+    val dupFreq = mergedKnowledgeBaseSideInfo.map(_.propositionId).groupBy(identity).filter(x => x._2.size > deductionResult.coveredPropositionResults.size)
     if(dupFreq.size == 0) return deductionResult.coveredPropositionResults
     val minFreqSize = dupFreq.mapValues(_.size).minBy(_._2)._2
     val propositionIdsHavingMinFreq: List[KnowledgeBaseSideInfo] = mergedKnowledgeBaseSideInfo.groupBy(identity).mapValues(_.size).filter(_._2 == minFreqSize).map(_._1).toList
@@ -243,13 +243,18 @@ trait DeductionUnitController extends LazyLogging {
   def analyze(aso: AnalyzedSentenceObject, asos: List[AnalyzedSentenceObject], deductionUnitName:String): AnalyzedSentenceObject = {
     //Excluding those for which the existence of links has already been confirmed in edgeList
     val coveredPropositionResults = getUnsettledEdges(aso).foldLeft(List.empty[(KnowledgeBaseSideInfo, CoveredPropositionEdge)]) {
+
+      //TODO:ここで、analyzeに渡されたdductionUnitFeatureTypes以外の
+      // aso.nodeMap.head._2.localContext.knowledgeFeatureReferences.head.featureTypeを持つ
+      // LocalsContextをもったものが存在したら、評価できないのでSKIPする。
       (acc, x) => analyzeGraphKnowledge(x, aso, acc)
     }
     if (coveredPropositionResults.size == 0) return aso
     val result = checkFinal(aso, deductionUnitName, coveredPropositionResults)
-
+    if(!result.deductionResult.status) return result
     //This process requires that the Premise has already finished in calculating the DeductionResult
     if (aso.knowledgeBaseSemiGlobalNode.sentenceType == CLAIM.index) {
+
       //val premiseDeductionResults: List[DeductionResult] = asos.map(x => x.deductionResultMap.get(PREMISE.index.toString).get)
       val premiseDeductionResults: List[DeductionResult] = asos.filter(x => x.knowledgeBaseSemiGlobalNode.sentenceType == PREMISE.index).map(y => y.deductionResult)
       //If there is no deduction result that makes premise true, return the process.
