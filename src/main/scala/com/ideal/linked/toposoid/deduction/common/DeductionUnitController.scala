@@ -80,7 +80,6 @@ trait DeductionUnitController extends LazyLogging {
 
     if (finalPropositionInfoList.size == 0) return updateAso
 
-    //TODO:Imageがついているかどうかで最終的に判断する必要がある。
     val status = true
     //selectedPropositions includes trivialClaimsPropositionIds
     val updatedCoveredPropositionResults2 = updatedCoveredPropositionResults.foldLeft(List.empty[CoveredPropositionResult]){
@@ -232,6 +231,30 @@ trait DeductionUnitController extends LazyLogging {
     })
   }
 
+  /**
+   *
+   * @param edge
+   * @param aso
+   * @param deductionUnitFeatureTypes
+   * @return
+   */
+  private def haveFeatureTypeToProcess(edge: KnowledgeBaseEdge, aso: AnalyzedSentenceObject, deductionUnitFeatureTypes:List[Int]): Boolean = {
+    val sourceKnowledgeFeatureReferences = aso.nodeMap.get(edge.sourceId).get.localContext.knowledgeFeatureReferences
+    val destinationKnowledgeFeatureReferences = aso.nodeMap.get(edge.destinationId).get.localContext.knowledgeFeatureReferences
+    val isSourceSideOk = sourceKnowledgeFeatureReferences.size match {
+      case 0 =>  true
+      case _ => {
+        sourceKnowledgeFeatureReferences.filter(x => deductionUnitFeatureTypes.contains(x.featureType)).size > 0
+      }
+    }
+    val isDestinationSideOk = sourceKnowledgeFeatureReferences.size match {
+      case 0 => true
+      case _ => {
+        destinationKnowledgeFeatureReferences.filter(x => deductionUnitFeatureTypes.contains(x.featureType)).size > 0
+      }
+    }
+    isSourceSideOk && isDestinationSideOk
+  }
 
   /**
    * This function analyzes whether the entered text exactly matches.
@@ -240,14 +263,17 @@ trait DeductionUnitController extends LazyLogging {
    * @param asos
    * @return
    */
-  def analyze(aso: AnalyzedSentenceObject, asos: List[AnalyzedSentenceObject], deductionUnitName:String): AnalyzedSentenceObject = {
+  def analyze(aso: AnalyzedSentenceObject, asos: List[AnalyzedSentenceObject], deductionUnitName:String, deductionUnitFeatureTypes:List[Int]): AnalyzedSentenceObject = {
     //Excluding those for which the existence of links has already been confirmed in edgeList
     val coveredPropositionResults = getUnsettledEdges(aso).foldLeft(List.empty[(KnowledgeBaseSideInfo, CoveredPropositionEdge)]) {
-
-      //TODO:ここで、analyzeに渡されたdductionUnitFeatureTypes以外の
-      // aso.nodeMap.head._2.localContext.knowledgeFeatureReferences.head.featureTypeを持つ
-      // LocalsContextをもったものが存在したら、評価できないのでSKIPする。
-      (acc, x) => analyzeGraphKnowledge(x, aso, acc)
+      (acc, x) => {
+        //If the feature does not match, it cannot be evaluated and will be skipped.
+        if (haveFeatureTypeToProcess(x, aso, deductionUnitFeatureTypes)) {
+          analyzeGraphKnowledge(x, aso, acc)
+        } else{
+          acc
+        }
+      }
     }
     if (coveredPropositionResults.size == 0) return aso
     val result = checkFinal(aso, deductionUnitName, coveredPropositionResults)
