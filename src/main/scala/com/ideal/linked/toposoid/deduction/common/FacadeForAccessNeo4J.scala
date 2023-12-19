@@ -26,6 +26,7 @@ import play.api.libs.json.Json
 import com.ideal.linked.common.DeploymentConverter.conf
 import com.ideal.linked.toposoid.common.{CLAIM, LOCAL, PREDICATE_ARGUMENT, PREMISE, ToposoidUtils}
 import com.ideal.linked.toposoid.deduction.common.AnalyzedSentenceObjectUtils.makeSentence
+import com.ideal.linked.toposoid.knowledgebase.featurevector.model.FeatureVectorSearchResult
 import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, KnowledgeBaseSemiGlobalNode, KnowledgeFeatureReference, LocalContextForFeature}
 import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects, CoveredPropositionResult, DeductionResult}
 import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
@@ -251,6 +252,27 @@ object FacadeForAccessNeo4J extends LazyLogging{
       Thread.sleep(20)
     }
     queryResultJson
+  }
+
+  def extractExistInNeo4JResult(featureVectorSearchResult: FeatureVectorSearchResult, sentenceType: Int): List[FeatureVectorSearchInfo] = {
+
+    (featureVectorSearchResult.ids zip featureVectorSearchResult.similarities).foldLeft(List.empty[FeatureVectorSearchInfo]) {
+      (acc, x) => {
+        val idInfo = x._1
+        val propositionId = idInfo.propositionId
+        val lang = idInfo.lang
+        val sentenceId = idInfo.featureId
+        val similarity = x._2
+        //val nodeType: String = ToposoidUtils.getNodeType(sentenceType)
+        val query = "MATCH (n) WHERE n.propositionId='%s' AND n.sentenceId='%s' RETURN n".format(propositionId, sentenceId)
+        val jsonStr: String = getCypherQueryResult(query, "")
+        val neo4jRecords: Neo4jRecords = Json.parse(jsonStr).as[Neo4jRecords]
+        neo4jRecords.records.size match {
+          case 0 => acc
+          case _ => acc :+ FeatureVectorSearchInfo(propositionId, sentenceId, sentenceType, lang, similarity)
+        }
+      }
+    }
   }
 
 }
