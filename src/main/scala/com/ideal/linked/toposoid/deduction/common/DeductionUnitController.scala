@@ -247,7 +247,7 @@ trait DeductionUnitController extends LazyLogging {
         sourceKnowledgeFeatureReferences.filter(x => deductionUnitFeatureTypes.contains(x.featureType)).size > 0
       }
     }
-    val isDestinationSideOk = sourceKnowledgeFeatureReferences.size match {
+    val isDestinationSideOk = destinationKnowledgeFeatureReferences.size match {
       case 0 => true
       case _ => {
         destinationKnowledgeFeatureReferences.filter(x => deductionUnitFeatureTypes.contains(x.featureType)).size > 0
