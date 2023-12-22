@@ -46,7 +46,7 @@ trait DeductionUnitControllerForSemiGlobal extends LazyLogging {
     //TODO:knowledgeBaseSideInfoListは、ある閾値を超えてるのであればいくつか候補が欲しい。ただし類似度が高い順に返して欲しい。
 
     //TODO:ここはFilterではうまく行かない。Premiseを立証するClaimの情報が追加されないといけない！！！
-    val selectedKnowledgeBaseSideInfo:List[KnowledgeBaseSideInfo] = knowledgeBaseSideInfoList.foldLeft(List.empty[List[KnowledgeBaseSideInfo]]){
+    val selectedKnowledgeBaseSideInfo:List[List[KnowledgeBaseSideInfo]] = knowledgeBaseSideInfoList.foldLeft(List.empty[List[KnowledgeBaseSideInfo]]){
       (acc, x) => {
         if (havePremise(x)) {
           acc :+ checkClaimHavingPremise(x)
@@ -54,9 +54,12 @@ trait DeductionUnitControllerForSemiGlobal extends LazyLogging {
           acc :+ List(x)
         }
       }
-    }.head
+    }.filter(_.size != 0)
 
     if(selectedKnowledgeBaseSideInfo.size == 0) return aso
+
+    val bestSelectedKnowledgeBaseSideInfo = selectedKnowledgeBaseSideInfo.head
+
     //TODO:updated CoveredPropositionResults Impl　基本ALL or Nothing 曖昧性を考慮して正しいのであればその命題はすべて正しい。
     // このDeductionUnitにおいて部分的にマッチしているということはない。
 
@@ -74,7 +77,7 @@ trait DeductionUnitControllerForSemiGlobal extends LazyLogging {
       propositionId = aso.knowledgeBaseSemiGlobalNode.propositionId,
       sentenceId = aso.knowledgeBaseSemiGlobalNode.sentenceId,
       coveredPropositionEdges = coveredPropositionEdges,
-      knowledgeBaseSideInfoList = selectedKnowledgeBaseSideInfo)
+      knowledgeBaseSideInfoList = bestSelectedKnowledgeBaseSideInfo)
 
 
     val status = true
