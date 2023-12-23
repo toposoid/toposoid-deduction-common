@@ -24,7 +24,7 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import play.api.libs.json.Json
 import com.ideal.linked.common.DeploymentConverter.conf
-import com.ideal.linked.toposoid.common.{CLAIM, LOCAL, PREDICATE_ARGUMENT, PREMISE, ToposoidUtils}
+import com.ideal.linked.toposoid.common.{CLAIM, LOCAL, PREDICATE_ARGUMENT, PREMISE, SEMIGLOBAL, SENTENCE, ToposoidUtils}
 import com.ideal.linked.toposoid.deduction.common.AnalyzedSentenceObjectUtils.makeSentence
 import com.ideal.linked.toposoid.knowledgebase.featurevector.model.FeatureVectorSearchResult
 import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, KnowledgeBaseSemiGlobalNode, KnowledgeFeatureReference, LocalContextForFeature}
@@ -254,22 +254,27 @@ object FacadeForAccessNeo4J extends LazyLogging{
     queryResultJson
   }
 
-  def extractExistInNeo4JResult(featureVectorSearchResult: FeatureVectorSearchResult, sentenceType: Int): List[FeatureVectorSearchInfo] = {
+  def extractExistInNeo4JResultForSentence(featureVectorSearchResult: FeatureVectorSearchResult, originalSentenceType: Int): List[FeatureVectorSearchInfo] = {
 
     (featureVectorSearchResult.ids zip featureVectorSearchResult.similarities).foldLeft(List.empty[FeatureVectorSearchInfo]) {
       (acc, x) => {
         val idInfo = x._1
         val propositionId = idInfo.propositionId
         val lang = idInfo.lang
-        val sentenceId = idInfo.featureId
+        val featureId = idInfo.featureId
         val similarity = x._2
-        //val nodeType: String = ToposoidUtils.getNodeType(sentenceType)
-        val query = "MATCH (n) WHERE n.propositionId='%s' AND n.sentenceId='%s' RETURN n".format(propositionId, sentenceId)
+        val nodeType: String = ToposoidUtils.getNodeType(idInfo.sentenceType, SEMIGLOBAL.index, SENTENCE.index)
+        //Check whether featureVectorSearchResult information exists in Neo4J
+        val query = "MATCH (n:%s) WHERE n.propositionId='%s' AND n.sentenceId='%s' RETURN n".format(nodeType, propositionId, featureId)
         val jsonStr: String = getCypherQueryResult(query, "")
         val neo4jRecords: Neo4jRecords = Json.parse(jsonStr).as[Neo4jRecords]
         neo4jRecords.records.size match {
           case 0 => acc
-          case _ => acc :+ FeatureVectorSearchInfo(propositionId, sentenceId, sentenceType, lang, similarity)
+          case _ => {
+            val idInfoOnNeo4jSide = neo4jRecords.records.head.head.value.semiGlobalNode.get
+            //sentenceType returns the originalSentenceType of the argument
+            acc :+ FeatureVectorSearchInfo(idInfoOnNeo4jSide.propositionId, idInfoOnNeo4jSide.sentenceId, originalSentenceType, lang, featureId, similarity)
+          }
         }
       }
     }

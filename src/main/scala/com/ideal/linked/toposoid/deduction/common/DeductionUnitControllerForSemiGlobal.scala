@@ -25,7 +25,7 @@ import com.typesafe.scalalogging.LazyLogging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 
-case class FeatureVectorSearchInfo(propositionId:String, sentenceId:String, sentenceType:Int, lang:String, similarity:Float)
+case class FeatureVectorSearchInfo(propositionId:String, sentenceId:String, sentenceType:Int, lang:String, featureId:String, similarity:Float)
 //case class SentenceId2FeatureVectorSearchResult(originalSentenceId:String, status:Boolean, featureVectorSearchInfo:FeatureVectorSearchInfo)
 
 trait DeductionUnitControllerForSemiGlobal extends LazyLogging {

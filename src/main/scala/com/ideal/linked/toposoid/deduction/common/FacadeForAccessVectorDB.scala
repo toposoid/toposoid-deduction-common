@@ -18,13 +18,13 @@ package com.ideal.linked.toposoid.deduction.common
 
 import com.ideal.linked.common.DeploymentConverter.conf
 import com.ideal.linked.toposoid.common.{CLAIM, ToposoidUtils}
-import com.ideal.linked.toposoid.deduction.common.FacadeForAccessNeo4J.{extractExistInNeo4JResult}
+import com.ideal.linked.toposoid.deduction.common.FacadeForAccessNeo4J.extractExistInNeo4JResultForSentence
 import com.ideal.linked.toposoid.knowledgebase.featurevector.model.{FeatureVectorIdentifier, FeatureVectorSearchResult, SingleFeatureVectorForSearch}
 import com.ideal.linked.toposoid.knowledgebase.regist.model.Knowledge
 import com.ideal.linked.toposoid.protocol.model.base.{KnowledgeBaseSideInfo, MatchedFeatureInfo}
 import com.ideal.linked.toposoid.vectorizer.FeatureVectorizer
 import com.typesafe.scalalogging.LazyLogging
-import play.api.libs.json.{Json}
+import play.api.libs.json.Json
 
 object FacadeForAccessVectorDB  extends LazyLogging{
 
@@ -50,7 +50,7 @@ object FacadeForAccessVectorDB  extends LazyLogging{
       case 0 => List.empty[KnowledgeBaseSideInfo]
       case _ => {
         //sentenceごとに最も類似度が高いものを抽出する
-        val featureVectorSearchInfoList = extractExistInNeo4JResult(filteredResult, originalSentenceType)
+        val featureVectorSearchInfoList = extractExistInNeo4JResultForSentence(filteredResult, originalSentenceType)
         featureVectorSearchInfoList.map(x => {
           KnowledgeBaseSideInfo(x.propositionId, x.sentenceId, List(MatchedFeatureInfo(featureId = x.sentenceId, similarity = x.similarity)))
         })
