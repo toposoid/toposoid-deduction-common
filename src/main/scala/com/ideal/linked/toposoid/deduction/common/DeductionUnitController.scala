@@ -109,11 +109,13 @@ trait DeductionUnitController extends LazyLogging {
     val dupFreq = mergedKnowledgeBaseSideInfo.map(_.propositionId).groupBy(identity).filter(x => x._2.size > deductionResult.coveredPropositionResults.size)
     if(dupFreq.size == 0) return deductionResult.coveredPropositionResults
     val minFreqSize = dupFreq.mapValues(_.size).minBy(_._2)._2
-    val propositionIdsHavingMinFreq: List[KnowledgeBaseSideInfo] = mergedKnowledgeBaseSideInfo.groupBy(identity).mapValues(_.size).filter(_._2 == minFreqSize).map(_._1).toList
+
+    val propositionIdsHavingMinFreq: List[String] = mergedKnowledgeBaseSideInfo.map(_.propositionId).groupBy(identity).mapValues(_.size).filter(_._2 == minFreqSize).map(_._1).toList
+    val filteredKnowledgeBaseSideInfo = mergedKnowledgeBaseSideInfo.filter(x =>  propositionIdsHavingMinFreq.contains(x.propositionId))
 
     val filteredCoveredPropositionEdges:List[CoveredPropositionEdge] = unsettledCoveredPropositionResults.filter(
       x => {
-        propositionIdsHavingMinFreq.contains(x._1)
+        propositionIdsHavingMinFreq.contains(x._1.propositionId)
       }).map(y => {
           y._2
       })
@@ -123,7 +125,7 @@ trait DeductionUnitController extends LazyLogging {
       propositionId = knowledgeBaseSemiGlobalNode.propositionId,
       sentenceId = knowledgeBaseSemiGlobalNode.sentenceId,
       coveredPropositionEdges = filteredCoveredPropositionEdges,
-      knowledgeBaseSideInfoList = propositionIdsHavingMinFreq
+      knowledgeBaseSideInfoList = filteredKnowledgeBaseSideInfo
       )
 
     deductionResult.coveredPropositionResults :+ coveredPropositionResult
