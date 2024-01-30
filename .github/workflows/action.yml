@@ -21,10 +21,12 @@ jobs:
         run: |
             docker rm --force $(docker ps -a -q) > /dev/null 2>&1 && :
             docker rmi --force ${{ env.PJ_REPO }}:${{ env.PJ_VERSION }}> /dev/null 2>&1 && :
+            docker rmi --force toposoid/${{ env.PJ_REPO }}:${{ env.PJ_VERSION }}> /dev/null 2>&1 && :
+            docker rmi --force toposoid/${{ env.PJ_REPO }}:${{ env.PJ_VERSION }}-lowspec > /dev/null 2>&1 && :          
             docker images
             docker system prune -f
             docker volume prune -f          
-            docker build --build-arg TARGET_BRANCH=${{ env.PJ_BRANCH }} --tag ${{ env.PJ_REPO }}:${{ env.PJ_VERSION }} -f Dockerfile-workflow .
+            docker build --build-arg TARGET_BRANCH=${{ env.PJ_BRANCH }} --build-arg JAVA_OPT_XMX=1g --tag ${{ env.PJ_REPO }}:${{ env.PJ_VERSION }} -f Dockerfile-workflow .
             docker-compose -f docker-compose-workflow.yml up -d toposoid-deduction-common
             docker-compose -f docker-compose-workflow.yml exec -T ${{ env.PJ_REPO }} bash -c "cd ${{ env.PJ_REPO }} && sbt headerCheck"
             docker-compose -f docker-compose-workflow.yml exec -T ${{ env.PJ_REPO }} bash -c "cd ${{ env.PJ_REPO }} && sbt test:headerCheck"
@@ -37,10 +39,6 @@ jobs:
             docker-compose -f docker-compose-workflow.yml exec -T ${{ env.PJ_REPO }} bash -c "cd ${{ env.PJ_REPO }} && sbt 'testOnly **.*JapaneseTest'"
             docker-compose -f docker-compose-workflow.yml rm -fsv toposoid-common-nlp-japanese-web
             docker-compose -f docker-compose-workflow.yml rm -fsv toposoid-sentence-parser-japanese-web
-            #docker rmi --force toposoid/toposoid-sentence-parser-japanese-web:${{ env.PJ_VERSION }}-workflow
-            #docker rmi --force toposoid/toposoid-common-nlp-japanese-web:${{ env.PJ_VERSION }}-workflow
-            #docker system prune -f
-            #docker volume prune -f
             docker-compose -f docker-compose-workflow.yml up -d corenlp
             docker-compose -f docker-compose-workflow.yml up -d toposoid-common-nlp-english-web
             docker-compose -f docker-compose-workflow.yml up -d toposoid-sentence-parser-english-web
