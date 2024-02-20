@@ -21,11 +21,12 @@ import com.ideal.linked.toposoid.knowledgebase.regist.model.{Knowledge, Proposit
 import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
 import com.ideal.linked.toposoid.protocol.model.parser.{KnowledgeForParser, KnowledgeSentenceSetForParser}
 import com.ideal.linked.toposoid.sentence.transformer.neo4j.Sentence2Neo4jTransformer
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, DiagrammedAssertions, FlatSpec}
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
+import org.scalatest.flatspec.AnyFlatSpec
 import play.api.libs.json.Json
 import io.jvm.uuid.UUID
 
-class FacadeForAccessNeo4JEnglishTest extends FlatSpec with DiagrammedAssertions with BeforeAndAfter with BeforeAndAfterAll{
+class FacadeForAccessNeo4JEnglishTest extends AnyFlatSpec with BeforeAndAfter with BeforeAndAfterAll{
 
   def registSingleClaim(knowledgeForParser:KnowledgeForParser): Unit = {
     val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
@@ -50,11 +51,18 @@ class FacadeForAccessNeo4JEnglishTest extends FlatSpec with DiagrammedAssertions
     val query:String = "MATCH (n) WHERE n.lang='en_US' RETURN n"
     val result:String = FacadeForAccessNeo4J.getCypherQueryResult(query, "")
     val neo4jRecords: Neo4jRecords = Json.parse(result).as[Neo4jRecords]
-    val sentenceMap: List[(Int, String)] = neo4jRecords.records.reverse.map(record => {
-      record.filter(x => x.key.equals("n")).map(y =>
-        y.value.logicNode.currentId -> y.value.logicNode.surface
-      ).head
-    })
+    val sentenceMap: List[(Int, String)] = neo4jRecords.records.reverse.foldLeft(List.empty[(Int, String)]) {
+      (acc, record) => {
+        acc ::: record.filter(x => x.key.equals("n")).foldLeft(List.empty[(Int, String)]) {
+          (acc2, y) => {
+            y.value.localNode match {
+              case Some(z) => acc2 :+ (z.predicateArgumentStructure.currentId -> z.predicateArgumentStructure.surface)
+              case _ => acc2
+            }
+          }
+        }
+      }
+    }
     val sentence: String = sentenceMap.toSeq.sortBy(_._1).foldLeft("") { (acc, x) => acc + " " + x._2 }
     assert(sentence.trim.equals("Time is money ."))
 
@@ -78,25 +86,4 @@ class FacadeForAccessNeo4JEnglishTest extends FlatSpec with DiagrammedAssertions
     })
 
   }
-
-  "havePremiseNode" should "be handled properly" in {
-    val propositionId1 =  UUID.random.toString
-    val sentenceId1 = UUID.random.toString
-    val knowledgeForParser = KnowledgeForParser(propositionId1, sentenceId1, Knowledge("Time is money.","en_US", "{}", false ))
-    registSingleClaim(knowledgeForParser)
-    assert(FacadeForAccessNeo4J.havePremiseNode(propositionId1) == false)
-    val propositionId2 =  UUID.random.toString
-    val sentenceId2 = UUID.random.toString
-    val sentenceId3 = UUID.random.toString
-
-    val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
-      List(KnowledgeForParser(propositionId2, sentenceId2, Knowledge("Fear often exaggerates danger.","en_US", "{}"))),
-      List.empty[PropositionRelation],
-      List(KnowledgeForParser(propositionId2, sentenceId3, Knowledge("Grasp Fortune by the forelock.","en_US", "{}"))),
-      List.empty[PropositionRelation])
-    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
-    assert(FacadeForAccessNeo4J.havePremiseNode(propositionId2) == true)
-  }
-
-
 }

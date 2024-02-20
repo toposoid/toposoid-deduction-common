@@ -24,10 +24,12 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import play.api.libs.json.Json
 import com.ideal.linked.common.DeploymentConverter.conf
-import com.ideal.linked.toposoid.common.{CLAIM, PREMISE, ToposoidUtils}
-import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode}
-import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects, DeductionResult}
-import com.ideal.linked.toposoid.protocol.model.neo4j.{Neo4jRecordMap, Neo4jRecords}
+import com.ideal.linked.toposoid.common.{CLAIM, LOCAL, PREDICATE_ARGUMENT, PREMISE, SEMIGLOBAL, SENTENCE, ToposoidUtils}
+import com.ideal.linked.toposoid.deduction.common.AnalyzedSentenceObjectUtils.makeSentence
+import com.ideal.linked.toposoid.knowledgebase.featurevector.model.FeatureVectorSearchResult
+import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, KnowledgeBaseSemiGlobalNode, KnowledgeFeatureReference, LocalContextForFeature}
+import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects, CoveredPropositionResult, DeductionResult}
+import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
 import com.typesafe.scalalogging.LazyLogging
 
 import scala.util.{Failure, Success, Try}
@@ -55,16 +57,76 @@ object FacadeForAccessNeo4J extends LazyLogging{
   /**
    *
    * @param propositionId
+   * @param sentenceId
+   * @param sentenceType
    * @return
    */
-  def havePremiseNode(propositionId:String):Boolean = Try{
-    val query = "MATCH (m:PremiseNode)-[e:LogicEdge]-(n:ClaimNode) WHERE n.propositionId='%s' return m, e, n".format(propositionId)
-    val jsonStr:String = getCypherQueryResult(query, "")
-    if(jsonStr.equals("""{"records":[]}""")) false
-    else true
-  }match {
+  def getAnalyzedSentenceObjectBySentenceId(propositionId:String, sentenceId:String, sentenceType:Int, lang:String):AnalyzedSentenceObject = Try {
+    //Neo4JにClaimとして存在している場合に推論が可能になる
+    val nodeType: String = ToposoidUtils.getNodeType(CLAIM.index, LOCAL.index, PREDICATE_ARGUMENT.index)
+    val query = "MATCH (n1:%s)-[e]->(n2:%s) WHERE n1.sentenceId='%s' AND n2.sentenceId='%s' RETURN n1, e, n2".format(nodeType, nodeType, sentenceId, sentenceId)
+    val jsonStr: String = getCypherQueryResult(query, "")
+    //If there is even one that does not match, it is useless to search further
+    val neo4jRecords: Neo4jRecords = Json.parse(jsonStr).as[Neo4jRecords]
+    //AnalyzedSentenceObjectは、与えられた命題のsentenceTypeで作成する。
+    getNeo4JData2AnalyzedSentenceObject(propositionId, sentenceId, sentenceType, lang, neo4jRecords)
+  } match {
     case Success(s) => s
     case Failure(e) => throw e
+  }
+
+  private def getNeo4JData2AnalyzedSentenceObject(propositionId:String, sentenceId:String, sentenceType:Int, lang:String, neo4jRecords:Neo4jRecords):AnalyzedSentenceObject = {
+
+    val neo4jDataInfo = neo4jRecords.records.foldLeft((Map.empty[String, KnowledgeBaseNode], List.empty[KnowledgeBaseEdge])) {
+      (acc, x) => {
+        val node1: KnowledgeBaseNode = x(0).value.localNode.get
+        val node2: KnowledgeBaseNode = x(2).value.localNode.get
+
+        val knowledgeBaseNode1 = KnowledgeBaseNode(
+          nodeId = node1.nodeId,
+          propositionId = node1.propositionId,
+          sentenceId = node1.sentenceId,
+          predicateArgumentStructure = node1.predicateArgumentStructure,
+          localContext = node1.localContext)
+
+        val knowledgeBaseNode2 = KnowledgeBaseNode(
+          nodeId = node2.nodeId,
+          propositionId = node2.propositionId,
+          sentenceId = node2.sentenceId,
+          predicateArgumentStructure = node2.predicateArgumentStructure,
+          localContext = node2.localContext)
+
+        val edge: KnowledgeBaseEdge = x(1).value.localEdge.get
+        val logicEdge: KnowledgeBaseEdge = KnowledgeBaseEdge(node1.nodeId, node2.nodeId, edge.caseStr, edge.dependType, edge.parallelType, edge.hasInclusion, edge.logicType)
+        val nodeMap:Map[String, KnowledgeBaseNode] = acc._1 ++ Map(node1.nodeId -> knowledgeBaseNode1) ++ Map(node2.nodeId -> knowledgeBaseNode2)
+        val edgeList:List[KnowledgeBaseEdge] = acc._2 :+ logicEdge
+        (nodeMap, edgeList)
+      }
+    }
+    /*
+    val coveredPropositionResult: CoveredPropositionResult = CoveredPropositionResult(
+      "",
+      propositionId,
+      sentenceId,
+      List.empty[CoveredPropositionEdge]
+    )
+     */
+    val deductionResult: DeductionResult = DeductionResult (false, coveredPropositionResults = List.empty[CoveredPropositionResult])
+
+    val localContextForFeature: LocalContextForFeature = LocalContextForFeature(lang, List.empty[KnowledgeFeatureReference])
+    val tmpKnowledgeBaseSemiGlobalNode: KnowledgeBaseSemiGlobalNode = KnowledgeBaseSemiGlobalNode(
+      sentenceId,
+      propositionId,
+      sentenceId,
+      "",
+      sentenceType,
+      localContextForFeature
+    )
+
+    AnalyzedSentenceObject(nodeMap = neo4jDataInfo._1 ,
+      edgeList = neo4jDataInfo._2,
+      knowledgeBaseSemiGlobalNode = tmpKnowledgeBaseSemiGlobalNode,
+      deductionResult = deductionResult)
   }
 
   /**
@@ -74,7 +136,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
    * @return
    */
   def neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId:String, sentenceType:Int):AnalyzedSentenceObjects = Try{
-    val nodeType:String = ToposoidUtils.getNodeType(sentenceType)
+    val nodeType:String = ToposoidUtils.getNodeType(sentenceType, LOCAL.index, PREDICATE_ARGUMENT.index)
     val query = "MATCH (n1:%s)-[e]->(n2:%s) WHERE n1.propositionId='%s' AND n2.propositionId='%s' RETURN n1, e, n2".format(nodeType, nodeType, propositionId, propositionId)
     val jsonStr:String = getCypherQueryResult(query, "")
     //If there is even one that does not match, it is useless to search further
@@ -82,8 +144,8 @@ object FacadeForAccessNeo4J extends LazyLogging{
 
     val neo4jDataInfo = neo4jRecords.records.foldLeft(Map.empty[String, (Map[String, KnowledgeBaseNode], List[KnowledgeBaseEdge])]){
       (acc, x) =>{
-        val node1:KnowledgeBaseNode = x(0).value.logicNode
-        val node2:KnowledgeBaseNode = x(2).value.logicNode
+        val node1:KnowledgeBaseNode = x(0).value.localNode.get
+        val node2:KnowledgeBaseNode = x(2).value.localNode.get
 
         val key = node1.nodeId.substring(0, node1.nodeId.lastIndexOf("-"))
         val key2 = node2.nodeId.substring(0, node2.nodeId.lastIndexOf("-"))
@@ -91,52 +153,22 @@ object FacadeForAccessNeo4J extends LazyLogging{
           acc
         }else{
           val knowledgeBaseNode1 = KnowledgeBaseNode(
-            node1.nodeId,
-            node1.propositionId,
-            node1.currentId,
-            node1.parentId,
-            node1.isMainSection,
-            node1.surface,
-            node1.normalizedName,
-            node1.dependType,
-            node1.caseType,
-            node1.namedEntity,
-            node1.rangeExpressions,
-            node1.categories,
-            node1.domains,
-            node1.isDenialWord,
-            node1.isConditionalConnection,
-            node1.normalizedNameYomi,
-            node1.surfaceYomi,
-            node1.modalityType,
-            node1.logicType,
-            node1.nodeType,
-            node1.lang)
+            nodeId = node1.nodeId,
+            propositionId = node1.propositionId,
+            sentenceId = node1.sentenceId,
+            predicateArgumentStructure = node1.predicateArgumentStructure,
+            localContext = node1.localContext)
 
           val knowledgeBaseNode2 = KnowledgeBaseNode(
-            node2.nodeId,
-            node2.propositionId,
-            node2.currentId,
-            node2.parentId,
-            node2.isMainSection,
-            node2.surface,
-            node2.normalizedName,
-            node2.dependType,
-            node2.caseType,
-            node2.namedEntity,
-            node2.rangeExpressions,
-            node2.categories,
-            node2.domains,
-            node2.isDenialWord,
-            node2.isConditionalConnection,
-            node2.normalizedNameYomi,
-            node2.surfaceYomi,
-            node2.modalityType,
-            node2.logicType,
-            node2.nodeType,
-            node2.lang)
-          val edge:KnowledgeBaseEdge = x(1).value.logicEdge
-          val logicEdge:KnowledgeBaseEdge = KnowledgeBaseEdge(node1.nodeId,node2.nodeId, edge.caseStr, edge.dependType, edge.logicType, edge.lang)
+            nodeId = node2.nodeId,
+            propositionId = node2.propositionId,
+            sentenceId = node2.sentenceId,
+            predicateArgumentStructure = node2.predicateArgumentStructure,
+            localContext = node2.localContext)
+
+
+          val edge:KnowledgeBaseEdge = x(1).value.localEdge.get
+          val logicEdge:KnowledgeBaseEdge = KnowledgeBaseEdge(node1.nodeId,node2.nodeId, edge.caseStr, edge.dependType, edge.parallelType, edge.hasInclusion, edge.logicType)
 
           val dataInfo:(Map[String, KnowledgeBaseNode], List[KnowledgeBaseEdge]) = acc.isDefinedAt(key) match {
             case true => acc.get(key).get
@@ -148,15 +180,33 @@ object FacadeForAccessNeo4J extends LazyLogging{
         }
       }
     }
-    val deductionResult:Map[String, DeductionResult] =
-      Map(
-        PREMISE.index.toString -> DeductionResult(false, List.empty[String], ""),
-        CLAIM.index.toString -> DeductionResult(false, List.empty[String],"")
-      )
+
     val asoList = neo4jDataInfo.map(x => {
       val sentenceId = x._2._1.head._2.nodeId.substring(0, x._2._1.head._2.nodeId.lastIndexOf("-"))
-      val lang = x._2._1.head._2.lang
-      AnalyzedSentenceObject(x._2._1, x._2._2, sentenceType, sentenceId, lang,  deductionResult)
+      val lang = x._2._1.head._2.localContext.lang
+      val localContextForFeature: LocalContextForFeature = LocalContextForFeature(lang, List.empty[KnowledgeFeatureReference])
+      val tmpKnowledgeFeatureNode: KnowledgeBaseSemiGlobalNode = KnowledgeBaseSemiGlobalNode(
+        sentenceId,
+        propositionId,
+        sentenceId,
+        "",
+        sentenceType,
+        localContextForFeature
+      )
+
+      val deductionResult: DeductionResult = DeductionResult(false, List.empty[CoveredPropositionResult])
+
+      val aso = AnalyzedSentenceObject(x._2._1, x._2._2, tmpKnowledgeFeatureNode,  deductionResult)
+      val sentenceMap = makeSentence(aso)
+      val knowledgeBaseSemiGlobalNode: KnowledgeBaseSemiGlobalNode = KnowledgeBaseSemiGlobalNode(
+        sentenceId,
+        propositionId,
+        sentenceId,
+        sentenceMap.get(sentenceType).get.sentence,
+        sentenceType,
+        localContextForFeature
+      )
+      AnalyzedSentenceObject(x._2._1, x._2._2, knowledgeBaseSemiGlobalNode,  deductionResult)
     }).toList
     AnalyzedSentenceObjects(asoList)
 
@@ -193,7 +243,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
       case Success(js) =>
         //println(s"Success: $js")
         queryResultJson = s"$js"
-        logger.info(s"Success: $js")
+        logger.debug(s"Success: $js")
       case Failure(e) =>
         //println(s"Failure: $e")
         logger.error(s"Failure: $e")
@@ -204,23 +254,30 @@ object FacadeForAccessNeo4J extends LazyLogging{
     queryResultJson
   }
 
-  /**
-   * This function checks if there is a result with only the specified ID
-   * @param id
-   * @param record
-   * @return
-   */
-  def existALlPropositionIdEqualId(id:String, record:List[Neo4jRecordMap]):Boolean = Try{
-    if(record.size > 0){
-      record.foreach { map: Neo4jRecordMap =>
-        if (map.value.logicNode.propositionId.equals(id)) {
-          return true
+  def extractExistInNeo4JResultForSentence(featureVectorSearchResult: FeatureVectorSearchResult, originalSentenceType: Int): List[FeatureVectorSearchInfo] = {
+
+    (featureVectorSearchResult.ids zip featureVectorSearchResult.similarities).foldLeft(List.empty[FeatureVectorSearchInfo]) {
+      (acc, x) => {
+        val idInfo = x._1
+        val propositionId = idInfo.propositionId
+        val lang = idInfo.lang
+        val featureId = idInfo.featureId
+        val similarity = x._2
+        val nodeType: String = ToposoidUtils.getNodeType(idInfo.sentenceType, SEMIGLOBAL.index, SENTENCE.index)
+        //Check whether featureVectorSearchResult information exists in Neo4J
+        val query = "MATCH (n:%s) WHERE n.propositionId='%s' AND n.sentenceId='%s' RETURN n".format(nodeType, propositionId, featureId)
+        val jsonStr: String = getCypherQueryResult(query, "")
+        val neo4jRecords: Neo4jRecords = Json.parse(jsonStr).as[Neo4jRecords]
+        neo4jRecords.records.size match {
+          case 0 => acc
+          case _ => {
+            val idInfoOnNeo4jSide = neo4jRecords.records.head.head.value.semiGlobalNode.get
+            //sentenceType returns the originalSentenceType of the argument
+            acc :+ FeatureVectorSearchInfo(idInfoOnNeo4jSide.propositionId, idInfoOnNeo4jSide.sentenceId, originalSentenceType, lang, featureId, similarity)
+          }
         }
       }
     }
-    return false
-  }match {
-    case Failure(e) => throw e
   }
 
 }

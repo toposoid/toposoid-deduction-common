@@ -17,16 +17,17 @@
 package com.ideal.linked.toposoid.deduction.common
 
 import com.ideal.linked.data.accessor.neo4j.Neo4JAccessor
-import com.ideal.linked.toposoid.knowledgebase.regist.model.{Knowledge, KnowledgeSentenceSet, PropositionRelation}
-import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObject, AnalyzedSentenceObjects}
+import com.ideal.linked.toposoid.knowledgebase.regist.model.{Knowledge, PropositionRelation}
+import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObjects}
 import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
 import com.ideal.linked.toposoid.protocol.model.parser.{KnowledgeForParser, KnowledgeSentenceSetForParser}
 import com.ideal.linked.toposoid.sentence.transformer.neo4j.Sentence2Neo4jTransformer
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, DiagrammedAssertions, FlatSpec}
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
+import org.scalatest.flatspec.AnyFlatSpec
 import play.api.libs.json.Json
 import io.jvm.uuid.UUID
 
-class FacadeForAccessNeo4JJapaneseTest extends FlatSpec with DiagrammedAssertions with BeforeAndAfter with BeforeAndAfterAll{
+class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter with BeforeAndAfterAll{
 
   def registSingleClaim(knowledgeForParser:KnowledgeForParser): Unit = {
     val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
@@ -51,14 +52,21 @@ class FacadeForAccessNeo4JJapaneseTest extends FlatSpec with DiagrammedAssertion
     val query:String = "MATCH (n) WHERE n.lang='ja_JP' RETURN n"
     val result:String = FacadeForAccessNeo4J.getCypherQueryResult(query, "")
     val neo4jRecords: Neo4jRecords = Json.parse(result).as[Neo4jRecords]
-    val sentenceMap: List[(Int, String)] = neo4jRecords.records.reverse.map(record => {
-      record.filter(x => x.key.equals("n")).map(y =>
-        y.value.logicNode.currentId -> y.value.logicNode.surface
-      ).head
-    })
+
+    val sentenceMap: List[(Int, String)] = neo4jRecords.records.reverse.foldLeft(List.empty[(Int, String)]) {
+      (acc, record) => {
+        acc ::: record.filter(x => x.key.equals("n")).foldLeft(List.empty[(Int, String)]) {
+          (acc2, y) => {
+            y.value.localNode match {
+              case Some(z) => acc2 :+ (z.predicateArgumentStructure.currentId -> z.predicateArgumentStructure.surface)
+              case _ => acc2
+            }
+          }
+        }
+      }
+    }
     val sentence: String = sentenceMap.toSeq.sortBy(_._1).foldLeft("") { (acc, x) => acc + x._2 }
     assert(sentence.equals("案ずるより産むが易し。"))
-
   }
 
   "Neo4j data" should "be properly converted to AnalyzedSentenceObject Type" in {
@@ -111,26 +119,5 @@ class FacadeForAccessNeo4JJapaneseTest extends FlatSpec with DiagrammedAssertion
       assert(AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get.sentence == "時は金なり。" || AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get.sentence == "人事を尽くして天命を待つ。")
     })
   }
-
-
-  "havePremiseNode" should "be handled properly" in {
-    val propositionId1 =  UUID.random.toString
-    val sentenceId1 = UUID.random.toString
-    val knowledgeForParser = KnowledgeForParser(propositionId1, sentenceId1, Knowledge("案ずるより産むが易し。", "ja_JP", "{}", false ))
-    registSingleClaim(knowledgeForParser)
-
-    assert(FacadeForAccessNeo4J.havePremiseNode(propositionId1) == false)
-    val propositionId2 =  UUID.random.toString
-    val sentenceId2 = UUID.random.toString
-    val sentenceId3 = UUID.random.toString
-    val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
-      List(KnowledgeForParser(propositionId2, sentenceId2, Knowledge("案ずるより産むが易し。","ja_JP", "{}"))),
-      List.empty[PropositionRelation],
-      List(KnowledgeForParser(propositionId2, sentenceId3, Knowledge("思い立ったが吉日。","ja_JP", "{}"))),
-      List.empty[PropositionRelation])
-    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
-    assert(FacadeForAccessNeo4J.havePremiseNode(propositionId2) == true)
-  }
-
 
 }
