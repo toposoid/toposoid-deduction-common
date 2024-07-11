@@ -17,8 +17,9 @@
 package com.ideal.linked.toposoid.deduction.common
 
 import com.ideal.linked.data.accessor.neo4j.Neo4JAccessor
+import com.ideal.linked.toposoid.common.TransversalState
 import com.ideal.linked.toposoid.knowledgebase.regist.model.{Knowledge, PropositionRelation}
-import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObjects}
+import com.ideal.linked.toposoid.protocol.model.base.AnalyzedSentenceObjects
 import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
 import com.ideal.linked.toposoid.protocol.model.parser.{KnowledgeForParser, KnowledgeSentenceSetForParser}
 import com.ideal.linked.toposoid.sentence.transformer.neo4j.Sentence2Neo4jTransformer
@@ -29,13 +30,15 @@ import io.jvm.uuid.UUID
 
 class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter with BeforeAndAfterAll{
 
+  val transversalState = TransversalState(username="guest")
+
   def registSingleClaim(knowledgeForParser:KnowledgeForParser): Unit = {
     val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
       List.empty[KnowledgeForParser],
       List.empty[PropositionRelation],
       List(knowledgeForParser),
       List.empty[PropositionRelation])
-    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
+    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser, transversalState)
   }
 
   override def beforeAll(): Unit = {
@@ -50,7 +53,7 @@ class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter w
 
   "A query for japanese knowledge" should "be handled properly" in {
     val query:String = "MATCH (n) WHERE n.lang='ja_JP' RETURN n"
-    val result:String = FacadeForAccessNeo4J.getCypherQueryResult(query, "")
+    val result:String = FacadeForAccessNeo4J.getCypherQueryResult(query, "", transversalState)
     val neo4jRecords: Neo4jRecords = Json.parse(result).as[Neo4jRecords]
 
     val sentenceMap: List[(Int, String)] = neo4jRecords.records.reverse.foldLeft(List.empty[(Int, String)]) {
@@ -78,8 +81,8 @@ class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter w
       List.empty[PropositionRelation],
       List(KnowledgeForParser(propositionId, sentenceId1, Knowledge("案ずるより産むが易し。", "ja_JP", "{}", false )), KnowledgeForParser(propositionId, sentenceId2, Knowledge("思い立ったが吉日。", "ja_JP", "{}", false ))),
       List.empty[PropositionRelation])
-    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
-    val asos:AnalyzedSentenceObjects = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1)
+    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser, transversalState)
+    val asos:AnalyzedSentenceObjects = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1, transversalState)
     assert(asos.analyzedSentenceObjects.size == 2)
     asos.analyzedSentenceObjects.foreach(aso => {
       assert(AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get.sentence == "案ずるより産むが易し。" || AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get.sentence == "思い立ったが吉日。")
@@ -107,9 +110,9 @@ class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter w
       List(PropositionRelation("AND", 0,1)),
       List(KnowledgeForParser(propositionId, sentenceId3, knowledge3), KnowledgeForParser(propositionId, sentenceId4, knowledge4)),
       List(PropositionRelation("AND", 0,1)))
-    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
-    val asos1:AnalyzedSentenceObjects = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 0)
-    val asos2:AnalyzedSentenceObjects = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1)
+    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser, transversalState)
+    val asos1:AnalyzedSentenceObjects = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 0, transversalState)
+    val asos2:AnalyzedSentenceObjects = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1, transversalState)
     assert(asos1.analyzedSentenceObjects.size == 2)
     asos1.analyzedSentenceObjects.foreach(aso => {
       assert(AnalyzedSentenceObjectUtils.makeSentence(aso).get(0).get.sentence == "案ずるより産むが易し。" || AnalyzedSentenceObjectUtils.makeSentence(aso).get(0).get.sentence == "思い立ったが吉日。")

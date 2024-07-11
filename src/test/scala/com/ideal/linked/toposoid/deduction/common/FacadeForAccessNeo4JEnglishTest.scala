@@ -17,6 +17,7 @@
 package com.ideal.linked.toposoid.deduction.common
 
 import com.ideal.linked.data.accessor.neo4j.Neo4JAccessor
+import com.ideal.linked.toposoid.common.TransversalState
 import com.ideal.linked.toposoid.knowledgebase.regist.model.{Knowledge, PropositionRelation}
 import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
 import com.ideal.linked.toposoid.protocol.model.parser.{KnowledgeForParser, KnowledgeSentenceSetForParser}
@@ -28,13 +29,15 @@ import io.jvm.uuid.UUID
 
 class FacadeForAccessNeo4JEnglishTest extends AnyFlatSpec with BeforeAndAfter with BeforeAndAfterAll{
 
+  val transversalState = TransversalState(username="guest")
+
   def registSingleClaim(knowledgeForParser:KnowledgeForParser): Unit = {
     val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
       List.empty[KnowledgeForParser],
       List.empty[PropositionRelation],
       List(knowledgeForParser),
       List.empty[PropositionRelation])
-    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
+    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser, transversalState)
   }
 
   override def beforeAll(): Unit = {
@@ -49,7 +52,7 @@ class FacadeForAccessNeo4JEnglishTest extends AnyFlatSpec with BeforeAndAfter wi
 
   "A query for english knowledge" should "be handled properly" in {
     val query:String = "MATCH (n) WHERE n.lang='en_US' RETURN n"
-    val result:String = FacadeForAccessNeo4J.getCypherQueryResult(query, "")
+    val result:String = FacadeForAccessNeo4J.getCypherQueryResult(query, "", transversalState)
     val neo4jRecords: Neo4jRecords = Json.parse(result).as[Neo4jRecords]
     val sentenceMap: List[(Int, String)] = neo4jRecords.records.reverse.foldLeft(List.empty[(Int, String)]) {
       (acc, record) => {
@@ -78,8 +81,8 @@ class FacadeForAccessNeo4JEnglishTest extends AnyFlatSpec with BeforeAndAfter wi
       List.empty[PropositionRelation],
       List(KnowledgeForParser(propositionId, sentenceId1, Knowledge("Time is money.","en_US", "{}", false )), KnowledgeForParser(propositionId, sentenceId2, Knowledge("Fear often exaggerates danger.","en_US", "{}", false ))),
       List.empty[PropositionRelation])
-    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
-    val asos = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1)
+    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser, transversalState)
+    val asos = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1, transversalState)
     assert(asos.analyzedSentenceObjects.size == 2)
     asos.analyzedSentenceObjects.foreach(aso => {
       assert(AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get.sentence == "Time is money ." || AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get.sentence == "Fear often exaggerates danger .")

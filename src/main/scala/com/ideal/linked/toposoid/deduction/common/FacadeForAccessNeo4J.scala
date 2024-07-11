@@ -19,12 +19,13 @@ package com.ideal.linked.toposoid.deduction.common
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.common.{EntityStreamingSupport, JsonEntityStreamingSupport}
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpMethods, HttpRequest}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import play.api.libs.json.Json
 import com.ideal.linked.common.DeploymentConverter.conf
-import com.ideal.linked.toposoid.common.{CLAIM, LOCAL, PREDICATE_ARGUMENT, PREMISE, SEMIGLOBAL, SENTENCE, ToposoidUtils}
+import com.ideal.linked.toposoid.common.{CLAIM, LOCAL, PREDICATE_ARGUMENT, PREMISE, SEMIGLOBAL, SENTENCE, TRANSVERSAL_STATE, ToposoidUtils, TransversalState}
 import com.ideal.linked.toposoid.deduction.common.AnalyzedSentenceObjectUtils.makeSentence
 import com.ideal.linked.toposoid.knowledgebase.featurevector.model.FeatureVectorSearchResult
 import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, KnowledgeBaseSemiGlobalNode, KnowledgeFeatureReference, LocalContextForFeature}
@@ -39,10 +40,10 @@ import scala.util.{Failure, Success, Try}
  */
 object FacadeForAccessNeo4J extends LazyLogging{
 
-  def getCypherQueryResult(query:String, target:String): String = Try{
+  def getCypherQueryResult(query:String, target:String, transversalState:TransversalState): String = Try{
     val retryNum =  conf.getInt("retryCallMicroserviceNum") -1
     for (i <- 0 to retryNum) {
-      val result:String  = this.getCypherQueryResultImpl(query, target)
+      val result:String  = this.getCypherQueryResultImpl(query, target, transversalState)
       if (result != "{}") {
         return result
       }
@@ -61,11 +62,11 @@ object FacadeForAccessNeo4J extends LazyLogging{
    * @param sentenceType
    * @return
    */
-  def getAnalyzedSentenceObjectBySentenceId(propositionId:String, sentenceId:String, sentenceType:Int, lang:String):AnalyzedSentenceObject = Try {
+  def getAnalyzedSentenceObjectBySentenceId(propositionId:String, sentenceId:String, sentenceType:Int, lang:String, transversalState:TransversalState):AnalyzedSentenceObject = Try {
     //Neo4JにClaimとして存在している場合に推論が可能になる
     val nodeType: String = ToposoidUtils.getNodeType(CLAIM.index, LOCAL.index, PREDICATE_ARGUMENT.index)
     val query = "MATCH (n1:%s)-[e]->(n2:%s) WHERE n1.sentenceId='%s' AND n2.sentenceId='%s' RETURN n1, e, n2".format(nodeType, nodeType, sentenceId, sentenceId)
-    val jsonStr: String = getCypherQueryResult(query, "")
+    val jsonStr: String = getCypherQueryResult(query, "", transversalState)
     //If there is even one that does not match, it is useless to search further
     val neo4jRecords: Neo4jRecords = Json.parse(jsonStr).as[Neo4jRecords]
     //AnalyzedSentenceObjectは、与えられた命題のsentenceTypeで作成する。
@@ -135,10 +136,10 @@ object FacadeForAccessNeo4J extends LazyLogging{
    * @param sentenceType
    * @return
    */
-  def neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId:String, sentenceType:Int):AnalyzedSentenceObjects = Try{
+  def neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId:String, sentenceType:Int, transversalState:TransversalState):AnalyzedSentenceObjects = Try{
     val nodeType:String = ToposoidUtils.getNodeType(sentenceType, LOCAL.index, PREDICATE_ARGUMENT.index)
     val query = "MATCH (n1:%s)-[e]->(n2:%s) WHERE n1.propositionId='%s' AND n2.propositionId='%s' RETURN n1, e, n2".format(nodeType, nodeType, propositionId, propositionId)
-    val jsonStr:String = getCypherQueryResult(query, "")
+    val jsonStr:String = getCypherQueryResult(query, "", transversalState)
     //If there is even one that does not match, it is useless to search further
     val neo4jRecords:Neo4jRecords = Json.parse(jsonStr).as[Neo4jRecords]
 
@@ -221,7 +222,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
    * This function throws a query to the microservice and returns the result as Json
    * @param query
    */
-  private def getCypherQueryResultImpl(query:String, target:String): String = {
+  private def getCypherQueryResultImpl(query:String, target:String, transversalState:TransversalState): String = {
 
     implicit val system = ActorSystem()
     implicit val materializer = ActorMaterializer()
@@ -231,7 +232,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
     val entity = HttpEntity(ContentTypes.`application/json`, input)
     val url = "http://" + conf.getString("scala-data-accessor-neo4j-web.address") + ":" + conf.getString("scala-data-accessor-neo4j-web.port") + "/getQueryFormattedResult"
     val request = HttpRequest(uri = url, method = HttpMethods.POST, entity = entity)
-
+                    .withHeaders(RawHeader(TRANSVERSAL_STATE.str, Json.toJson(transversalState).toString()))
     val result = Http().singleRequest(request)
       .flatMap { res =>
         Unmarshal(res).to[String].map { data =>
@@ -254,7 +255,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
     queryResultJson
   }
 
-  def extractExistInNeo4JResultForSentence(featureVectorSearchResult: FeatureVectorSearchResult, originalSentenceType: Int): List[FeatureVectorSearchInfo] = {
+  def extractExistInNeo4JResultForSentence(featureVectorSearchResult: FeatureVectorSearchResult, originalSentenceType: Int, transversalState:TransversalState): List[FeatureVectorSearchInfo] = {
 
     (featureVectorSearchResult.ids zip featureVectorSearchResult.similarities).foldLeft(List.empty[FeatureVectorSearchInfo]) {
       (acc, x) => {
@@ -266,7 +267,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
         val nodeType: String = ToposoidUtils.getNodeType(idInfo.sentenceType, SEMIGLOBAL.index, SENTENCE.index)
         //Check whether featureVectorSearchResult information exists in Neo4J
         val query = "MATCH (n:%s) WHERE n.propositionId='%s' AND n.sentenceId='%s' RETURN n".format(nodeType, propositionId, featureId)
-        val jsonStr: String = getCypherQueryResult(query, "")
+        val jsonStr: String = getCypherQueryResult(query, "", transversalState)
         val neo4jRecords: Neo4jRecords = Json.parse(jsonStr).as[Neo4jRecords]
         neo4jRecords.records.size match {
           case 0 => acc
