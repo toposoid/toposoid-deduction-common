@@ -31,7 +31,7 @@ case class FeatureVectorSearchInfo(propositionId:String, sentenceId:String, sent
 trait DeductionUnitControllerForSemiGlobal extends LazyLogging {
   protected def execute: Action[JsValue]
 
-  protected def analyzeGraphKnowledgeForSemiGlobal(aso: AnalyzedSentenceObject):List[KnowledgeBaseSideInfo]
+  protected def analyzeGraphKnowledgeForSemiGlobal(aso: AnalyzedSentenceObject, transversalState:TransversalState):List[KnowledgeBaseSideInfo]
   /**
    * final check
    *
@@ -188,7 +188,7 @@ trait DeductionUnitControllerForSemiGlobal extends LazyLogging {
 
     //TODO:ASOの置き換えはしない方向で大丈夫か確認する。
     if(!haveFeatureTypeToProcess(aso, deductionUnitFeatureTypes)) return aso
-    val knowledgeBaseSideInfoList:List[KnowledgeBaseSideInfo] = analyzeGraphKnowledgeForSemiGlobal(aso)
+    val knowledgeBaseSideInfoList:List[KnowledgeBaseSideInfo] = analyzeGraphKnowledgeForSemiGlobal(aso, transversalState)
     if (knowledgeBaseSideInfoList.size == 0) return aso
 
     val result = checkFinal(aso, deductionUnitName, knowledgeBaseSideInfoList, transversalState)
