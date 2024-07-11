@@ -29,7 +29,7 @@ import play.api.mvc._
 trait DeductionUnitController extends LazyLogging {
   protected def execute: Action[JsValue]
 
-  protected def analyzeGraphKnowledge(edge: KnowledgeBaseEdge, aso:AnalyzedSentenceObject, accParent: List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)]): List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)]
+  protected def analyzeGraphKnowledge(edge: KnowledgeBaseEdge, aso:AnalyzedSentenceObject, accParent: List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)], transversalState:TransversalState): List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)]
 
   private def getMergedKnowledgeBaseSideInfo(coveredPropositionResults: List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)], confirmedCoveredPropositionResults:List[CoveredPropositionResult]):List[KnowledgeBaseSideInfo] = {
     val knowledgeBaseSideInfoList = coveredPropositionResults.map(_._1)
@@ -271,7 +271,7 @@ trait DeductionUnitController extends LazyLogging {
       (acc, x) => {
         //If the feature does not match, it cannot be evaluated and will be skipped.
         if (haveFeatureTypeToProcess(x, aso, deductionUnitFeatureTypes)) {
-          analyzeGraphKnowledge(x, aso, acc)
+          analyzeGraphKnowledge(x, aso, acc, transversalState)
         } else{
           acc
         }
