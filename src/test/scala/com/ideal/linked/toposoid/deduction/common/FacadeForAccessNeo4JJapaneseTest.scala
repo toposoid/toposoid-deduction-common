@@ -30,7 +30,7 @@ import io.jvm.uuid.UUID
 
 class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter with BeforeAndAfterAll{
 
-  val transversalState = TransversalState(username="guest")
+  val transversalState = TransversalState(userId="test-user", username="guest", roleId=0, csrfToken = "")
 
   def registSingleClaim(knowledgeForParser:KnowledgeForParser): Unit = {
     val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
