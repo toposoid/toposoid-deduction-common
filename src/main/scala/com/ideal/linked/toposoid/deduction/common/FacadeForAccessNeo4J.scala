@@ -230,7 +230,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
     implicit val jsonStreamingSupport: JsonEntityStreamingSupport = EntityStreamingSupport.json()
     val input = """{ "query":"%s", "target":"%s" }""".format(query, target)
     val entity = HttpEntity(ContentTypes.`application/json`, input)
-    val url = "http://" + conf.getString("scala-data-accessor-neo4j-web.address") + ":" + conf.getString("scala-data-accessor-neo4j-web.port") + "/getQueryFormattedResult"
+    val url = "http://" + conf.getString("TOPOSOID_GRAPHDB_WEB_HOST") + ":" + conf.getString("TOPOSOID_GRAPHDB_WEB_PORT") + "/getQueryFormattedResult"
     val request = HttpRequest(uri = url, method = HttpMethods.POST, entity = entity)
                     .withHeaders(RawHeader(TRANSVERSAL_STATE.str, Json.toJson(transversalState).toString()))
     val result = Http().singleRequest(request)
