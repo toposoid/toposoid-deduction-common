@@ -16,12 +16,11 @@
 
 package com.ideal.linked.toposoid.deduction.common
 
-import com.ideal.linked.data.accessor.neo4j.Neo4JAccessor
-import com.ideal.linked.toposoid.common.TransversalState
+import com.ideal.linked.toposoid.common.{Neo4JUtilsImpl, TransversalState}
 import com.ideal.linked.toposoid.knowledgebase.regist.model.{Knowledge, PropositionRelation}
 import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
 import com.ideal.linked.toposoid.protocol.model.parser.{KnowledgeForParser, KnowledgeSentenceSetForParser}
-import com.ideal.linked.toposoid.sentence.transformer.neo4j.Sentence2Neo4jTransformer
+import com.ideal.linked.toposoid.test.utils.TestUtils
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatest.flatspec.AnyFlatSpec
 import play.api.libs.json.Json
@@ -30,24 +29,25 @@ import io.jvm.uuid.UUID
 class FacadeForAccessNeo4JEnglishTest extends AnyFlatSpec with BeforeAndAfter with BeforeAndAfterAll{
 
   val transversalState = TransversalState(userId="test-user", username="guest", roleId=0, csrfToken = "")
-
-  def registSingleClaim(knowledgeForParser:KnowledgeForParser): Unit = {
-    val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
-      List.empty[KnowledgeForParser],
-      List.empty[PropositionRelation],
-      List(knowledgeForParser),
-      List.empty[PropositionRelation])
-    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser, transversalState)
+  val neo4JUtils = new Neo4JUtilsImpl()
+  def deleteNeo4JAllData(transversalState: TransversalState): Unit = {
+    val query = "MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r"
+    neo4JUtils.executeQuery(query, transversalState)
   }
 
   override def beforeAll(): Unit = {
-    Neo4JAccessor.delete()
+    deleteNeo4JAllData(transversalState)
     val knowledgeForParser = KnowledgeForParser(UUID.random.toString, UUID.random.toString, Knowledge("Time is money.","en_US", "{}", false ))
-    registSingleClaim(knowledgeForParser)
+    val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
+      premiseList = List.empty[KnowledgeForParser],
+      premiseLogicRelation = List.empty[PropositionRelation],
+      claimList = List(knowledgeForParser),
+      claimLogicRelation = List.empty[PropositionRelation])
+    TestUtils.registerData(knowledgeSentenceSetForParser, transversalState, addVectorFlag = false)
   }
 
   override def afterAll(): Unit = {
-    Neo4JAccessor.delete()
+    deleteNeo4JAllData(transversalState)
   }
 
   "A query for english knowledge" should "be handled properly" in {
@@ -81,7 +81,7 @@ class FacadeForAccessNeo4JEnglishTest extends AnyFlatSpec with BeforeAndAfter wi
       List.empty[PropositionRelation],
       List(KnowledgeForParser(propositionId, sentenceId1, Knowledge("Time is money.","en_US", "{}", false )), KnowledgeForParser(propositionId, sentenceId2, Knowledge("Fear often exaggerates danger.","en_US", "{}", false ))),
       List.empty[PropositionRelation])
-    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser, transversalState)
+    TestUtils.registerData(knowledgeSentenceSetForParser, transversalState, addVectorFlag = false)
     val asos = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1, transversalState)
     assert(asos.analyzedSentenceObjects.size == 2)
     asos.analyzedSentenceObjects.foreach(aso => {
