@@ -9,6 +9,14 @@ ENV _JAVA_OPTIONS="-Xms256m -Xmx"${JAVA_OPT_XMX}
 RUN apt-get update \
 #&& apt-get -y upgrade \
 && apt-get -y install git unzip \
+&& git clone https://github.com/toposoid/toposoid-test-utils.git \
+&& cd toposoid-test-utils \
+&& git pull \
+&& git fetch origin ${TARGET_BRANCH} \
+&& git checkout ${TARGET_BRANCH}
+&& sbt publishLocal \
+&& rm -Rf ./target \
+&& cd .. \
 && git clone https://github.com/toposoid/toposoid-deduction-common.git \
 && cd toposoid-deduction-common \
 && git fetch origin ${TARGET_BRANCH} \
