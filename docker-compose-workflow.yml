@@ -4,7 +4,7 @@ services:
     image: toposoid-deduction-common:0.6-SNAPSHOT
     tty: true
     environment:
-      - TOPOSOID_GRAPHDB_WEB_HOST=scala-data-accessor-neo4j-web
+      - TOPOSOID_GRAPHDB_WEB_HOST=data-accessor-neo4j-web
       - TOPOSOID_GRAPHDB_WEB_PORT=9005
       - TOPOSOID_SENTENCE_PARSER_JP_WEB_HOST=toposoid-sentence-parser-japanese-web
       - TOPOSOID_SENTENCE_PARSER_JP_WEB_PORT=9001
@@ -14,16 +14,16 @@ services:
       - TOPOSOID_COMMON_NLP_JP_WEB_PORT=9006
       - TOPOSOID_COMMON_NLP_EN_WEB_HOST=toposoid-common-nlp-english-web
       - TOPOSOID_COMMON_NLP_EN_WEB_PORT=9008
-  scala-data-accessor-neo4j-web:
-    image: toposoid/scala-data-accessor-neo4j-web:0.6-SNAPSHOT-lowspec
+  data-accessor-neo4j-web:
+    image: toposoid/data-accessor-neo4j-web:0.6-SNAPSHOT-lowspec
     environment:
       - TOPOSOID_GRAPHDB_HOST=neo4j
-      - PRIVATE_IP_ADDRESS=scala-data-accessor-neo4j-web
+      - PRIVATE_IP_ADDRESS=data-accessor-neo4j-web
       - PLAY_HTTP_PORT=9005
     ports:
       - 9005:9005
   toposoid-sentence-parser-japanese-web:
-    image: toposoid/toposoid-sentence-parser-japanese-web:0.6-SNAPSHOT-lowspec
+    image: toposoid/toposoid-sentence-parser-japanese-web:0.6-SNAPSHOT
     tty: true
     environment:
       - PRIVATE_IP_ADDRESS=toposoid-sentence-parser-japanese-web
