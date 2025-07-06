@@ -15,7 +15,7 @@ services:
       - TOPOSOID_COMMON_NLP_EN_WEB_HOST=toposoid-common-nlp-english-web
       - TOPOSOID_COMMON_NLP_EN_WEB_PORT=9008
   data-accessor-neo4j-web:
-    image: toposoid/data-accessor-neo4j-web:0.6-SNAPSHOT-lowspec
+    image: toposoid/data-accessor-neo4j-web:0.6-SNAPSHOT
     environment:
       - TOPOSOID_GRAPHDB_HOST=neo4j
       - PRIVATE_IP_ADDRESS=data-accessor-neo4j-web
