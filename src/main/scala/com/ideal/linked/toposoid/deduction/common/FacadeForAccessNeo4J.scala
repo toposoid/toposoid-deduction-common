@@ -44,7 +44,15 @@ object FacadeForAccessNeo4J extends LazyLogging{
   def getCypherQueryResult(query:String, target:String, transversalState:TransversalState): String = Try{
     val retryNum =  conf.getInt("retryCallMicroserviceNum") -1
     for (i <- 0 to retryNum) {
-      val result:String  = this.getCypherQueryResultImpl(query, target, transversalState)
+      //val result:String  = this.getCypherQueryResultImpl(query, target, transversalState)
+      val json = """{ "query":"%s", "target":"%s" }""".format(query, target)
+      val result:String  = ToposoidUtils.callComponent(
+        json,
+        conf.getString("TOPOSOID_GRAPHDB_WEB_HOST"),
+        conf.getString("TOPOSOID_GRAPHDB_WEB_PORT"),
+        "getQueryFormattedResult",
+        transversalState
+      )
       if (result != "{}") {
         return result
       }
@@ -223,6 +231,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
    * This function throws a query to the microservice and returns the result as Json
    * @param query
    */
+  /*
   private def getCypherQueryResultImpl(query:String, target:String, transversalState:TransversalState): String = {
 
     implicit val system = ActorSystem()
@@ -255,7 +264,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
     }
     queryResultJson
   }
-
+  */
   def extractExistInNeo4JResultForSentence(featureVectorSearchResult: FeatureVectorSearchResult, originalSentenceType: Int, transversalState:TransversalState): List[FeatureVectorSearchInfo] = {
 
     (featureVectorSearchResult.ids zip featureVectorSearchResult.similarities).foldLeft(List.empty[FeatureVectorSearchInfo]) {
