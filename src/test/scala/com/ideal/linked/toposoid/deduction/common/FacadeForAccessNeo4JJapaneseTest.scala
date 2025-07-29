@@ -1,27 +1,28 @@
 /*
- * Copyright 2021 Linked Ideal LLC.[https://linked-ideal.com/]
+ * Copyright (C) 2025  Linked Ideal LLC.[https://linked-ideal.com/]
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.ideal.linked.toposoid.deduction.common
 
-import com.ideal.linked.data.accessor.neo4j.Neo4JAccessor
+import com.ideal.linked.toposoid.common.{Neo4JUtilsImpl, TransversalState}
 import com.ideal.linked.toposoid.knowledgebase.regist.model.{Knowledge, PropositionRelation}
-import com.ideal.linked.toposoid.protocol.model.base.{AnalyzedSentenceObjects}
+import com.ideal.linked.toposoid.protocol.model.base.AnalyzedSentenceObjects
 import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
 import com.ideal.linked.toposoid.protocol.model.parser.{KnowledgeForParser, KnowledgeSentenceSetForParser}
-import com.ideal.linked.toposoid.sentence.transformer.neo4j.Sentence2Neo4jTransformer
+import com.ideal.linked.toposoid.test.utils.TestUtils
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatest.flatspec.AnyFlatSpec
 import play.api.libs.json.Json
@@ -29,28 +30,33 @@ import io.jvm.uuid.UUID
 
 class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter with BeforeAndAfterAll{
 
-  def registSingleClaim(knowledgeForParser:KnowledgeForParser): Unit = {
-    val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
-      List.empty[KnowledgeForParser],
-      List.empty[PropositionRelation],
-      List(knowledgeForParser),
-      List.empty[PropositionRelation])
-    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
+  val transversalState = TransversalState(userId="test-user", username="guest", roleId=0, csrfToken = "")
+  val neo4JUtils = new Neo4JUtilsImpl()
+  def deleteNeo4JAllData(transversalState: TransversalState): Unit = {
+    val query = "MATCH (n) OPTIONAL MATCH (n)-[r]-() DELETE n,r"
+    neo4JUtils.executeQuery(query, transversalState)
   }
 
+
   override def beforeAll(): Unit = {
-    Neo4JAccessor.delete()
+    deleteNeo4JAllData(transversalState)
     val knowledgeForParser = KnowledgeForParser(UUID.random.toString, UUID.random.toString, Knowledge("案ずるより産むが易し。", "ja_JP", "{}", false ))
-    registSingleClaim(knowledgeForParser)
+    val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
+      premiseList = List.empty[KnowledgeForParser],
+      premiseLogicRelation = List.empty[PropositionRelation],
+      claimList = List(knowledgeForParser),
+      claimLogicRelation = List.empty[PropositionRelation])
+    TestUtils.registerData(knowledgeSentenceSetForParser, transversalState, addVectorFlag = false)
+
   }
 
   override def afterAll(): Unit = {
-    Neo4JAccessor.delete()
+    deleteNeo4JAllData(transversalState)
   }
 
   "A query for japanese knowledge" should "be handled properly" in {
     val query:String = "MATCH (n) WHERE n.lang='ja_JP' RETURN n"
-    val result:String = FacadeForAccessNeo4J.getCypherQueryResult(query, "")
+    val result:String = FacadeForAccessNeo4J.getCypherQueryResult(query, "", transversalState)
     val neo4jRecords: Neo4jRecords = Json.parse(result).as[Neo4jRecords]
 
     val sentenceMap: List[(Int, String)] = neo4jRecords.records.reverse.foldLeft(List.empty[(Int, String)]) {
@@ -78,8 +84,8 @@ class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter w
       List.empty[PropositionRelation],
       List(KnowledgeForParser(propositionId, sentenceId1, Knowledge("案ずるより産むが易し。", "ja_JP", "{}", false )), KnowledgeForParser(propositionId, sentenceId2, Knowledge("思い立ったが吉日。", "ja_JP", "{}", false ))),
       List.empty[PropositionRelation])
-    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
-    val asos:AnalyzedSentenceObjects = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1)
+    TestUtils.registerData(knowledgeSentenceSetForParser, transversalState, addVectorFlag = false)
+    val asos:AnalyzedSentenceObjects = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1, transversalState)
     assert(asos.analyzedSentenceObjects.size == 2)
     asos.analyzedSentenceObjects.foreach(aso => {
       assert(AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get.sentence == "案ずるより産むが易し。" || AnalyzedSentenceObjectUtils.makeSentence(aso).get(1).get.sentence == "思い立ったが吉日。")
@@ -107,9 +113,9 @@ class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter w
       List(PropositionRelation("AND", 0,1)),
       List(KnowledgeForParser(propositionId, sentenceId3, knowledge3), KnowledgeForParser(propositionId, sentenceId4, knowledge4)),
       List(PropositionRelation("AND", 0,1)))
-    Sentence2Neo4jTransformer.createGraph(knowledgeSentenceSetForParser)
-    val asos1:AnalyzedSentenceObjects = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 0)
-    val asos2:AnalyzedSentenceObjects = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1)
+    TestUtils.registerData(knowledgeSentenceSetForParser, transversalState, addVectorFlag = false)
+    val asos1:AnalyzedSentenceObjects = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 0, transversalState)
+    val asos2:AnalyzedSentenceObjects = FacadeForAccessNeo4J.neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId, 1, transversalState)
     assert(asos1.analyzedSentenceObjects.size == 2)
     asos1.analyzedSentenceObjects.foreach(aso => {
       assert(AnalyzedSentenceObjectUtils.makeSentence(aso).get(0).get.sentence == "案ずるより産むが易し。" || AnalyzedSentenceObjectUtils.makeSentence(aso).get(0).get.sentence == "思い立ったが吉日。")

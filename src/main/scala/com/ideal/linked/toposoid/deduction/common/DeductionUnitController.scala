@@ -1,26 +1,27 @@
 /*
- * Copyright 2021 Linked Ideal LLC.[https://linked-ideal.com/]
+ * Copyright (C) 2025  Linked Ideal LLC.[https://linked-ideal.com/]
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.ideal.linked.toposoid.deduction.common
 
-import com.ideal.linked.toposoid.common.{CLAIM, PREMISE}
+import com.ideal.linked.toposoid.common.{CLAIM, PREMISE, TransversalState}
 import com.ideal.linked.toposoid.deduction.common.FacadeForAccessNeo4J.getCypherQueryResult
 import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseSemiGlobalNode}
 import com.ideal.linked.toposoid.protocol.model.base.{CoveredPropositionResult, _}
-import com.ideal.linked.toposoid.protocol.model.neo4j.{Neo4jRecords}
+import com.ideal.linked.toposoid.protocol.model.neo4j.Neo4jRecords
 import com.typesafe.scalalogging.LazyLogging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
@@ -29,7 +30,7 @@ import play.api.mvc._
 trait DeductionUnitController extends LazyLogging {
   protected def execute: Action[JsValue]
 
-  protected def analyzeGraphKnowledge(edge: KnowledgeBaseEdge, aso:AnalyzedSentenceObject, accParent: List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)]): List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)]
+  protected def analyzeGraphKnowledge(edge: KnowledgeBaseEdge, aso:AnalyzedSentenceObject, accParent: List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)], transversalState:TransversalState): List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)]
 
   private def getMergedKnowledgeBaseSideInfo(coveredPropositionResults: List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)], confirmedCoveredPropositionResults:List[CoveredPropositionResult]):List[KnowledgeBaseSideInfo] = {
     val knowledgeBaseSideInfoList = coveredPropositionResults.map(_._1)
@@ -45,7 +46,7 @@ trait DeductionUnitController extends LazyLogging {
    * @param searchResults
    * @return
    */
-  private def checkFinal(aso: AnalyzedSentenceObject, deductionUnitName:String, unsettledCoveredPropositionResults:List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)] ): AnalyzedSentenceObject = {
+  private def checkFinal(aso: AnalyzedSentenceObject, deductionUnitName:String, unsettledCoveredPropositionResults:List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)], transversalState:TransversalState ): AnalyzedSentenceObject = {
 
     //The targetMatchedPropositionInfoList contains duplicate propositionIds.
     //Pick up the most frequent propositionId
@@ -70,12 +71,12 @@ trait DeductionUnitController extends LazyLogging {
     val coveredPropositionInfoList = mergedKnowledgeBaseSideInfo.filter(x =>  propositionIdsHavingMinFreq.contains(x.propositionId))
     //Does the chosen proposalId have a premise? T
     //he coveredPropositionInfoList contains a mixture of those that are established only by Claims and those that have Premise.
-    val propositionInfoListHavingPremise: List[KnowledgeBaseSideInfo] = coveredPropositionInfoList.filter(havePremise(_))
+    val propositionInfoListHavingPremise: List[KnowledgeBaseSideInfo] = coveredPropositionInfoList.filter(havePremise(_, transversalState))
     val propositionInfoListOnlyClaim: List[KnowledgeBaseSideInfo] = coveredPropositionInfoList.filterNot(x => propositionInfoListHavingPremise.map(y => y.propositionId).contains(x.propositionId))
 
     val finalPropositionInfoList: List[KnowledgeBaseSideInfo] = propositionInfoListHavingPremise.size match {
       case 0 => propositionInfoListOnlyClaim
-      case _ => propositionInfoListOnlyClaim ::: checkClaimHavingPremise(propositionInfoListHavingPremise)
+      case _ => propositionInfoListOnlyClaim ::: checkClaimHavingPremise(propositionInfoListHavingPremise, transversalState)
     }
 
     if (finalPropositionInfoList.size == 0) return updateAso
@@ -135,9 +136,9 @@ trait DeductionUnitController extends LazyLogging {
    * @param matchedPropositionInfo
    * @return
    */
-  private def havePremise(matchedPropositionInfo: KnowledgeBaseSideInfo): Boolean = {
+  private def havePremise(matchedPropositionInfo: KnowledgeBaseSideInfo, transversalState:TransversalState): Boolean = {
     val query = "MATCH (n:PremiseNode)-[*]-(m:ClaimNode) WHERE m.propositionId ='%s'  RETURN (n)".format(matchedPropositionInfo.propositionId)
-    val jsonStr: String = getCypherQueryResult(query, "n")
+    val jsonStr: String = getCypherQueryResult(query, "n", transversalState)
     val neo4jRecords: Neo4jRecords = Json.parse(jsonStr).as[Neo4jRecords]
     neo4jRecords.records.size match {
       case 0 => false
@@ -149,17 +150,17 @@ trait DeductionUnitController extends LazyLogging {
    * @param targetMatchedPropositionInfoList
    * @return
    */
-  private def checkClaimHavingPremise(targetMatchedPropositionInfoList: List[KnowledgeBaseSideInfo]): List[KnowledgeBaseSideInfo] = {
+  private def checkClaimHavingPremise(targetMatchedPropositionInfoList: List[KnowledgeBaseSideInfo], transversalState:TransversalState): List[KnowledgeBaseSideInfo] = {
     //Pick up a node with the same surface layer as the Premise connected from Claim as x
     //Search for the one that has the corresponding ClaimId and has a premise
     targetMatchedPropositionInfoList.foldLeft(List.empty[KnowledgeBaseSideInfo]) {
       (acc, x) => {
         val query = "MATCH (n1:PremiseNode)-[e:LocalEdge{logicType:'-'}]->(n2:PremiseNode) WHERE n1.propositionId='%s' AND n2.propositionId='%s' RETURN n1, e, n2".format(x.propositionId, x.propositionId)
-        val jsonStr = FacadeForAccessNeo4J.getCypherQueryResult(query, "x")
+        val jsonStr = FacadeForAccessNeo4J.getCypherQueryResult(query, "x", transversalState)
         val neo4jRecords: Neo4jRecords = Json.parse(jsonStr).as[Neo4jRecords]
         val resultMatchedPropositionInfoList = neo4jRecords.records.size match {
           case 0 => List.empty[KnowledgeBaseSideInfo]
-          case _ => checkOnlyClaimNodes(neo4jRecords, targetMatchedPropositionInfoList)
+          case _ => checkOnlyClaimNodes(neo4jRecords, targetMatchedPropositionInfoList, transversalState)
         }
         acc ::: resultMatchedPropositionInfoList
       }
@@ -172,7 +173,7 @@ trait DeductionUnitController extends LazyLogging {
    * @param targetMatchedPropositionInfoList
    * @return
    */
-  private def checkOnlyClaimNodes(neo4jRecords: Neo4jRecords, targetMatchedPropositionInfoList: List[KnowledgeBaseSideInfo]): List[KnowledgeBaseSideInfo] = {
+  private def checkOnlyClaimNodes(neo4jRecords: Neo4jRecords, targetMatchedPropositionInfoList: List[KnowledgeBaseSideInfo], transversalState:TransversalState): List[KnowledgeBaseSideInfo] = {
 
     val claimMatchedPropositionInfo: List[KnowledgeBaseSideInfo] = neo4jRecords.records.foldLeft(List.empty[KnowledgeBaseSideInfo]) {
       (acc, x) => {
@@ -180,7 +181,7 @@ trait DeductionUnitController extends LazyLogging {
         val caseStr: String = x(1).value.localEdge.get.caseStr
         val surface2: String = x(2).value.localNode.get.predicateArgumentStructure.surface
         val query = "MATCH (n1:ClaimNode)-[e:LocalEdge]->(n2:ClaimNode) WHERE n1.surface='%s' AND e.caseName='%s' AND n2.surface='%s' RETURN n1, e, n2".format(surface1, caseStr, surface2)
-        val jsonStr: String = getCypherQueryResult(query, "")
+        val jsonStr: String = getCypherQueryResult(query, "", transversalState)
         val neo4jRecordsForClaim: Neo4jRecords = Json.parse(jsonStr).as[Neo4jRecords]
         val additionalMatchedPropositionInfo = neo4jRecordsForClaim.records.foldLeft(List.empty[KnowledgeBaseSideInfo]) {
           (acc2, x2) => {
@@ -204,7 +205,7 @@ trait DeductionUnitController extends LazyLogging {
     //candidatesは、propositionId上の重複はない。
     if (candidates.size == 0) return List.empty[KnowledgeBaseSideInfo]
     //ensure there are no Premise. only claim!
-    val finalChoice: List[KnowledgeBaseSideInfo] = candidates.filterNot(x => this.havePremise(x))
+    val finalChoice: List[KnowledgeBaseSideInfo] = candidates.filterNot(x => this.havePremise(x, transversalState))
     finalChoice.size match {
       case 0 => List.empty[KnowledgeBaseSideInfo]
       case _ => finalChoice ::: targetMatchedPropositionInfoList
@@ -265,20 +266,20 @@ trait DeductionUnitController extends LazyLogging {
    * @param asos
    * @return
    */
-  def analyze(aso: AnalyzedSentenceObject, asos: List[AnalyzedSentenceObject], deductionUnitName:String, deductionUnitFeatureTypes:List[Int]): AnalyzedSentenceObject = {
+  def analyze(aso: AnalyzedSentenceObject, asos: List[AnalyzedSentenceObject], deductionUnitName:String, deductionUnitFeatureTypes:List[Int], transversalState:TransversalState): AnalyzedSentenceObject = {
     //Excluding those for which the existence of links has already been confirmed in edgeList
     val coveredPropositionResults = getUnsettledEdges(aso).foldLeft(List.empty[(KnowledgeBaseSideInfo, CoveredPropositionEdge)]) {
       (acc, x) => {
         //If the feature does not match, it cannot be evaluated and will be skipped.
         if (haveFeatureTypeToProcess(x, aso, deductionUnitFeatureTypes)) {
-          analyzeGraphKnowledge(x, aso, acc)
+          analyzeGraphKnowledge(x, aso, acc, transversalState)
         } else{
           acc
         }
       }
     }
     if (coveredPropositionResults.size == 0) return aso
-    val result = checkFinal(aso, deductionUnitName, coveredPropositionResults)
+    val result = checkFinal(aso, deductionUnitName, coveredPropositionResults, transversalState)
     if(!result.deductionResult.status) return result
     //This process requires that the Premise has already finished in calculating the DeductionResult
     if (aso.knowledgeBaseSemiGlobalNode.sentenceType == CLAIM.index) {

@@ -1,22 +1,23 @@
 /*
- * Copyright 2021 Linked Ideal LLC.[https://linked-ideal.com/]
+ * Copyright (C) 2025  Linked Ideal LLC.[https://linked-ideal.com/]
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package com.ideal.linked.toposoid.deduction.common
 
-import com.ideal.linked.toposoid.common.{CLAIM, PREMISE}
+import com.ideal.linked.toposoid.common.{CLAIM, PREMISE, TransversalState}
 import com.ideal.linked.toposoid.deduction.common.FacadeForAccessNeo4J.getCypherQueryResult
 import com.ideal.linked.toposoid.deduction.common.FacadeForAccessVectorDB.getMatchedSentenceFeature
 import com.ideal.linked.toposoid.protocol.model.base._
@@ -31,7 +32,7 @@ case class FeatureVectorSearchInfo(propositionId:String, sentenceId:String, sent
 trait DeductionUnitControllerForSemiGlobal extends LazyLogging {
   protected def execute: Action[JsValue]
 
-  protected def analyzeGraphKnowledgeForSemiGlobal(aso: AnalyzedSentenceObject):List[KnowledgeBaseSideInfo]
+  protected def analyzeGraphKnowledgeForSemiGlobal(aso: AnalyzedSentenceObject, transversalState:TransversalState):List[KnowledgeBaseSideInfo]
   /**
    * final check
    *
@@ -40,7 +41,7 @@ trait DeductionUnitControllerForSemiGlobal extends LazyLogging {
    * @param searchResults
    * @return
    */
-  private def checkFinal(aso: AnalyzedSentenceObject, deductionUnitName:String, knowledgeBaseSideInfoList:List[KnowledgeBaseSideInfo] ): AnalyzedSentenceObject = {
+  private def checkFinal(aso: AnalyzedSentenceObject, deductionUnitName:String, knowledgeBaseSideInfoList:List[KnowledgeBaseSideInfo], transversalState:TransversalState ): AnalyzedSentenceObject = {
 
     //AnalysisSentenceObjectは必ず文章は一つ
     //TODO:knowledgeBaseSideInfoListは、ある閾値を超えてるのであればいくつか候補が欲しい。ただし類似度が高い順に返して欲しい。
@@ -48,8 +49,8 @@ trait DeductionUnitControllerForSemiGlobal extends LazyLogging {
     //TODO:ここはFilterではうまく行かない。Premiseを立証するClaimの情報が追加されないといけない！！！
     val selectedKnowledgeBaseSideInfo:List[List[KnowledgeBaseSideInfo]] = knowledgeBaseSideInfoList.foldLeft(List.empty[List[KnowledgeBaseSideInfo]]){
       (acc, x) => {
-        if (havePremise(x)) {
-          acc :+ checkClaimHavingPremise(x)
+        if (havePremise(x, transversalState)) {
+          acc :+ checkClaimHavingPremise(x, transversalState)
         } else {
           acc :+ List(x)
         }
@@ -91,9 +92,9 @@ trait DeductionUnitControllerForSemiGlobal extends LazyLogging {
    * @param knowledgeBaseSideInfo
    * @return
    */
-  private def havePremise(knowledgeBaseSideInfo: KnowledgeBaseSideInfo): Boolean = {
+  private def havePremise(knowledgeBaseSideInfo: KnowledgeBaseSideInfo, transversalState:TransversalState): Boolean = {
     val query = "MATCH (n:SemiGlobalPremiseNode)-[*]-(m:SemiGlobalClaimNode) WHERE m.propositionId ='%s' AND m.sentenceId ='%s'  RETURN (n)".format(knowledgeBaseSideInfo.propositionId, knowledgeBaseSideInfo.sentenceId)
-    val jsonStr: String = getCypherQueryResult(query, "n")
+    val jsonStr: String = getCypherQueryResult(query, "n", transversalState)
     val neo4jRecords: Neo4jRecords = Json.parse(jsonStr).as[Neo4jRecords]
     neo4jRecords.records.size match {
       case 0 => false
@@ -106,16 +107,16 @@ trait DeductionUnitControllerForSemiGlobal extends LazyLogging {
    * @param targetMatchedPropositionInfoList
    * @return
    */
-  private def checkClaimHavingPremise(knowledgeBaseSideInfo: KnowledgeBaseSideInfo): List[KnowledgeBaseSideInfo] = {
+  private def checkClaimHavingPremise(knowledgeBaseSideInfo: KnowledgeBaseSideInfo, transversalState:TransversalState): List[KnowledgeBaseSideInfo] = {
     //Pick up a node with the same surface layer as the Premise connected from Claim as x
     //Search for the one that has the corresponding ClaimId and has a premise
 
     val query = "MATCH (n:SemiGlobalPremiseNode) WHERE n.propositionId='%s' RETURN n".format(knowledgeBaseSideInfo.propositionId, knowledgeBaseSideInfo.propositionId)
-    val jsonStr = FacadeForAccessNeo4J.getCypherQueryResult(query, "x")
+    val jsonStr = FacadeForAccessNeo4J.getCypherQueryResult(query, "x", transversalState)
     val neo4jRecords: Neo4jRecords = Json.parse(jsonStr).as[Neo4jRecords]
     neo4jRecords.records.size match {
       case 0 => List.empty[KnowledgeBaseSideInfo]
-      case _ => checkOnlyClaimNodes(neo4jRecords, knowledgeBaseSideInfo)
+      case _ => checkOnlyClaimNodes(neo4jRecords, knowledgeBaseSideInfo, transversalState)
     }
   }
 
@@ -126,7 +127,7 @@ trait DeductionUnitControllerForSemiGlobal extends LazyLogging {
    * @param targetMatchedPropositionInfoList
    * @return
    */
-  private def checkOnlyClaimNodes(neo4jRecords: Neo4jRecords, knowledgeBaseSideInfo: KnowledgeBaseSideInfo): List[KnowledgeBaseSideInfo] = {
+  private def checkOnlyClaimNodes(neo4jRecords: Neo4jRecords, knowledgeBaseSideInfo: KnowledgeBaseSideInfo, transversalState:TransversalState): List[KnowledgeBaseSideInfo] = {
 
     val claimMatchedPropositionInfo = neo4jRecords.records.foldLeft(List.empty[KnowledgeBaseSideInfo]){
       (acc, x) => {
@@ -136,7 +137,7 @@ trait DeductionUnitControllerForSemiGlobal extends LazyLogging {
         val sentence = x.head.value.semiGlobalNode.get.sentence
         val lang = x.head.value.semiGlobalNode.get.localContextForFeature.lang
 
-        acc ::: getMatchedSentenceFeature(originalSentenceId, originalSentenceType, sentence, lang)
+        acc ::: getMatchedSentenceFeature(originalSentenceId, originalSentenceType, sentence, lang, transversalState)
       }
     }
 
@@ -151,7 +152,7 @@ trait DeductionUnitControllerForSemiGlobal extends LazyLogging {
     //candidatesは、propositionId上の重複はない。
     if (candidates.size == 0) return List.empty[KnowledgeBaseSideInfo]
     //ensure there are no Premise. only claim!
-    val finalChoice: List[KnowledgeBaseSideInfo] = candidates.filterNot(x => this.havePremise(x))
+    val finalChoice: List[KnowledgeBaseSideInfo] = candidates.filterNot(x => this.havePremise(x, transversalState))
     finalChoice.size match {
       case 0 => List.empty[KnowledgeBaseSideInfo]
       case _ => finalChoice :+ knowledgeBaseSideInfo //finalChoice:premiseを説明するClaim knowledgeBaseSideInfo: premiseに接続しているClaim
@@ -183,15 +184,15 @@ trait DeductionUnitControllerForSemiGlobal extends LazyLogging {
    * @param asos
    * @return
    */
-  def analyze(aso: AnalyzedSentenceObject, asos: List[AnalyzedSentenceObject], deductionUnitName:String, deductionUnitFeatureTypes:List[Int]): AnalyzedSentenceObject = {
+  def analyze(aso: AnalyzedSentenceObject, asos: List[AnalyzedSentenceObject], deductionUnitName:String, deductionUnitFeatureTypes:List[Int], transversalState:TransversalState): AnalyzedSentenceObject = {
     //Excluding those for which the existence of links has already been confirmed in edgeList
 
     //TODO:ASOの置き換えはしない方向で大丈夫か確認する。
     if(!haveFeatureTypeToProcess(aso, deductionUnitFeatureTypes)) return aso
-    val knowledgeBaseSideInfoList:List[KnowledgeBaseSideInfo] = analyzeGraphKnowledgeForSemiGlobal(aso)
+    val knowledgeBaseSideInfoList:List[KnowledgeBaseSideInfo] = analyzeGraphKnowledgeForSemiGlobal(aso, transversalState)
     if (knowledgeBaseSideInfoList.size == 0) return aso
 
-    val result = checkFinal(aso, deductionUnitName, knowledgeBaseSideInfoList)
+    val result = checkFinal(aso, deductionUnitName, knowledgeBaseSideInfoList, transversalState)
     if(!result.deductionResult.status) return result
     //This process requires that the Premise has already finished in calculating the DeductionResult
     if (aso.knowledgeBaseSemiGlobalNode.sentenceType == CLAIM.index) {

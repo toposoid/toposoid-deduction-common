@@ -1,11 +1,11 @@
 version: '3'
 services:
   toposoid-deduction-common:
-    image: toposoid-deduction-common:0.5
+    image: toposoid-deduction-common:0.6
     tty: true
     environment:
-      - TOPOSOID_GRAPHDB_HOST=neo4j
-      - TOPOSOID_GRAPHDB_WEB_HOST=scala-data-accessor-neo4j-web
+      - TOPOSOID_GRAPHDB_WEB_HOST=data-accessor-neo4j-web
+      - TOPOSOID_GRAPHDB_WEB_PORT=9005
       - TOPOSOID_SENTENCE_PARSER_JP_WEB_HOST=toposoid-sentence-parser-japanese-web
       - TOPOSOID_SENTENCE_PARSER_JP_WEB_PORT=9001
       - TOPOSOID_SENTENCE_PARSER_EN_WEB_HOST=toposoid-sentence-parser-english-web
@@ -14,16 +14,16 @@ services:
       - TOPOSOID_COMMON_NLP_JP_WEB_PORT=9006
       - TOPOSOID_COMMON_NLP_EN_WEB_HOST=toposoid-common-nlp-english-web
       - TOPOSOID_COMMON_NLP_EN_WEB_PORT=9008
-  scala-data-accessor-neo4j-web:
-    image: toposoid/scala-data-accessor-neo4j-web:0.5-lowspec
+  data-accessor-neo4j-web:
+    image: toposoid/data-accessor-neo4j-web:0.6
     environment:
       - TOPOSOID_GRAPHDB_HOST=neo4j
-      - PRIVATE_IP_ADDRESS=scala-data-accessor-neo4j-web
+      - PRIVATE_IP_ADDRESS=data-accessor-neo4j-web
       - PLAY_HTTP_PORT=9005
     ports:
       - 9005:9005
   toposoid-sentence-parser-japanese-web:
-    image: toposoid/toposoid-sentence-parser-japanese-web:0.5-lowspec
+    image: toposoid/toposoid-sentence-parser-japanese-web:0.6
     tty: true
     environment:
       - PRIVATE_IP_ADDRESS=toposoid-sentence-parser-japanese-web
@@ -31,7 +31,7 @@ services:
     ports:
       - 9001:9001
   toposoid-common-nlp-japanese-web:
-    image: toposoid/toposoid-common-nlp-japanese-web:0.5-lowspec
+    image: toposoid/toposoid-common-nlp-japanese-web:0.6-lowspec
     environment:
       - PRIVATE_IP_ADDRESS=toposoid-common-nlp-japanese-web
       - TOPOSOID_SYNONYM_NOUN_SIMILARITY_THRESHHOLD_JP=0.52
@@ -44,7 +44,7 @@ services:
     ports:
       - 9006:9006
   toposoid-sentence-parser-english-web:
-    image: toposoid/toposoid-sentence-parser-english-web:0.5-lowspec
+    image: toposoid/toposoid-sentence-parser-english-web:0.6-lowspec
     environment:
       - PRIVATE_IP_ADDRESS=toposoid-sentence-parser-english-web
       - PLAY_HTTP_PORT=9007
@@ -53,7 +53,7 @@ services:
     ports:
       - 9007:9007
   toposoid-common-nlp-english-web:
-    image: toposoid/toposoid-common-nlp-english-web:0.5-lowspec
+    image: toposoid/toposoid-common-nlp-english-web:0.6-lowspec
     environment:
       - PRIVATE_IP_ADDRESS=toposoid-common-nlp-english-web
       - TOPOSOID_SYNONYM_NOUN_SIMILARITY_THRESHHOLD_EN=0.52
