@@ -26,7 +26,7 @@ import com.ideal.linked.toposoid.test.utils.TestUtils
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatest.flatspec.AnyFlatSpec
 import play.api.libs.json.Json
-import io.jvm.uuid.UUID
+//import io.jvm.uuid.UUID
 
 class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter with BeforeAndAfterAll{
 
@@ -40,7 +40,7 @@ class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter w
 
   override def beforeAll(): Unit = {
     deleteNeo4JAllData(transversalState)
-    val knowledgeForParser = KnowledgeForParser(UUID.random.toString, UUID.random.toString, Knowledge("案ずるより産むが易し。", "ja_JP", "{}", false ))
+    val knowledgeForParser = KnowledgeForParser(java.util.UUID.randomUUID().toString, java.util.UUID.randomUUID().toString, Knowledge("案ずるより産むが易し。", "ja_JP", "{}", false ))
     val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
       premiseList = List.empty[KnowledgeForParser],
       premiseLogicRelation = List.empty[PropositionRelation],
@@ -76,9 +76,9 @@ class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter w
   }
 
   "Neo4j data" should "be properly converted to AnalyzedSentenceObject Type" in {
-    val propositionId =  UUID.random.toString
-    val sentenceId1 =  UUID.random.toString
-    val sentenceId2 =  UUID.random.toString
+    val propositionId =  java.util.UUID.randomUUID().toString
+    val sentenceId1 =  java.util.UUID.randomUUID().toString
+    val sentenceId2 =  java.util.UUID.randomUUID().toString
     val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
       List.empty[KnowledgeForParser],
       List.empty[PropositionRelation],
@@ -93,11 +93,11 @@ class FacadeForAccessNeo4JJapaneseTest extends AnyFlatSpec with BeforeAndAfter w
   }
 
   "Neo4j data with logic relation" should "be properly converted to AnalyzedSentenceObject Type" in {
-    val propositionId =  UUID.random.toString
-    val sentenceId1 =  UUID.random.toString
-    val sentenceId2 =  UUID.random.toString
-    val sentenceId3 =  UUID.random.toString
-    val sentenceId4 =  UUID.random.toString
+    val propositionId =  java.util.UUID.randomUUID().toString
+    val sentenceId1 =  java.util.UUID.randomUUID().toString
+    val sentenceId2 =  java.util.UUID.randomUUID().toString
+    val sentenceId3 =  java.util.UUID.randomUUID().toString
+    val sentenceId4 =  java.util.UUID.randomUUID().toString
 
     val sentenceA = "案ずるより産むが易し。"
     val sentenceB = "思い立ったが吉日。"

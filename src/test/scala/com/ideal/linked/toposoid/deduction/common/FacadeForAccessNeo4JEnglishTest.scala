@@ -25,7 +25,7 @@ import com.ideal.linked.toposoid.test.utils.TestUtils
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatest.flatspec.AnyFlatSpec
 import play.api.libs.json.Json
-import io.jvm.uuid.UUID
+//import io.jvm.uuid.UUID
 
 class FacadeForAccessNeo4JEnglishTest extends AnyFlatSpec with BeforeAndAfter with BeforeAndAfterAll{
 
@@ -38,7 +38,7 @@ class FacadeForAccessNeo4JEnglishTest extends AnyFlatSpec with BeforeAndAfter wi
 
   override def beforeAll(): Unit = {
     deleteNeo4JAllData(transversalState)
-    val knowledgeForParser = KnowledgeForParser(UUID.random.toString, UUID.random.toString, Knowledge("Time is money.","en_US", "{}", false ))
+    val knowledgeForParser = KnowledgeForParser(java.util.UUID.randomUUID().toString, java.util.UUID.randomUUID().toString, Knowledge("Time is money.","en_US", "{}", false ))
     val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
       premiseList = List.empty[KnowledgeForParser],
       premiseLogicRelation = List.empty[PropositionRelation],
@@ -73,9 +73,9 @@ class FacadeForAccessNeo4JEnglishTest extends AnyFlatSpec with BeforeAndAfter wi
   }
 
   "Neo4j data" should "be properly converted to AnalyzedSentenceObject Type" in {
-    val propositionId =  UUID.random.toString
-    val sentenceId1 =  UUID.random.toString
-    val sentenceId2 =  UUID.random.toString
+    val propositionId =  java.util.UUID.randomUUID().toString
+    val sentenceId1 =  java.util.UUID.randomUUID().toString
+    val sentenceId2 =  java.util.UUID.randomUUID().toString
 
     val knowledgeSentenceSetForParser = KnowledgeSentenceSetForParser(
       List.empty[KnowledgeForParser],
