@@ -28,7 +28,7 @@ import play.api.mvc._
 
 
 trait DeductionUnitController extends LazyLogging {
-  protected def execute: Action[JsValue]
+  protected def execute(): Action[JsValue]
 
   protected def analyzeGraphKnowledge(edge: KnowledgeBaseEdge, aso:AnalyzedSentenceObject, accParent: List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)], transversalState:TransversalState): List[(KnowledgeBaseSideInfo, CoveredPropositionEdge)]
 
