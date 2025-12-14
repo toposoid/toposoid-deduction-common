@@ -30,7 +30,7 @@ case class FeatureVectorSearchInfo(propositionId:String, sentenceId:String, sent
 //case class SentenceId2FeatureVectorSearchResult(originalSentenceId:String, status:Boolean, featureVectorSearchInfo:FeatureVectorSearchInfo)
 
 trait DeductionUnitControllerForSemiGlobal extends LazyLogging {
-  protected def execute: Action[JsValue]
+  protected def execute(): Action[JsValue]
 
   protected def analyzeGraphKnowledgeForSemiGlobal(aso: AnalyzedSentenceObject, transversalState:TransversalState):List[KnowledgeBaseSideInfo]
   /**
