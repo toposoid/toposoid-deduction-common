@@ -17,7 +17,7 @@
 
 package com.ideal.linked.toposoid.deduction.common
 
-import com.ideal.linked.toposoid.common.{CLAIM, PREMISE, TransversalState}
+import com.ideal.linked.toposoid.common.{SentenceType, TransversalState}
 import com.ideal.linked.toposoid.deduction.common.FacadeForAccessNeo4J.getCypherQueryResult
 import com.ideal.linked.toposoid.deduction.common.FacadeForAccessVectorDB.getMatchedSentenceFeature
 import com.ideal.linked.toposoid.protocol.model.base._
@@ -195,13 +195,13 @@ trait DeductionUnitControllerForSemiGlobal extends LazyLogging {
     val result = checkFinal(aso, deductionUnitName, knowledgeBaseSideInfoList, transversalState)
     if(!result.deductionResult.status) return result
     //This process requires that the Premise has already finished in calculating the DeductionResult
-    if (aso.knowledgeBaseSemiGlobalNode.sentenceType == CLAIM.index) {
+    if (aso.knowledgeBaseSemiGlobalNode.sentenceType == SentenceType.CLAIM.index) {
 
       //val premiseDeductionResults: List[DeductionResult] = asos.map(x => x.deductionResultMap.get(PREMISE.index.toString).get)
-      val premiseDeductionResults: List[DeductionResult] = asos.filter(x => x.knowledgeBaseSemiGlobalNode.sentenceType == PREMISE.index).map(y => y.deductionResult)
+      val premiseDeductionResults: List[DeductionResult] = asos.filter(x => x.knowledgeBaseSemiGlobalNode.sentenceType == SentenceType.PREMISE.index).map(y => y.deductionResult)
       //If there is no deduction result that makes premise true, return the process.
       if (premiseDeductionResults.filter(_.status).size == 0) return result
-      asos.filter(x => x.knowledgeBaseSemiGlobalNode.sentenceType == PREMISE.index).size match {
+      asos.filter(x => x.knowledgeBaseSemiGlobalNode.sentenceType == SentenceType.PREMISE.index).size match {
         case 0 => result
         case _ => {
           //val premiseDeductionResults: List[DeductionResult] = asos.map(x => x.deductionResultMap.get(PREMISE.index.toString).get)

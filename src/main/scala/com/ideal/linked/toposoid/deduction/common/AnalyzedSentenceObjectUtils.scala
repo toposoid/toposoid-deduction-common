@@ -17,7 +17,7 @@
 
 package com.ideal.linked.toposoid.deduction.common
 
-import com.ideal.linked.toposoid.common.{CLAIM, PREMISE}
+import com.ideal.linked.toposoid.common.{SentenceType}
 import com.ideal.linked.toposoid.protocol.model.base.AnalyzedSentenceObject
 
 /**
@@ -42,11 +42,11 @@ object AnalyzedSentenceObjectUtils {
 
     val sentenceMap = surfaces.toSeq.sortBy(_._1).foldLeft(Map.empty[Int, SentenceInfo]){
       (acc, surfaceTuple) =>{
-        val premiseSentence:SentenceInfo = acc.get(PREMISE.index).getOrElse(SentenceInfo("","", "", ""))
-        val claimSentence:SentenceInfo = acc.get(CLAIM.index).getOrElse(SentenceInfo("", "", "", ""))
+        val premiseSentence:SentenceInfo = acc.get(SentenceType.PREMISE.index).getOrElse(SentenceInfo("","", "", ""))
+        val claimSentence:SentenceInfo = acc.get(SentenceType.CLAIM.index).getOrElse(SentenceInfo("", "", "", ""))
         val sentenceMap:Map[Int, SentenceInfo] = surfaceTuple._2._2 match {
-          case PREMISE.index => Map(PREMISE.index -> SentenceInfo((premiseSentence.sentence + space + surfaceTuple._2._1).trim, surfaceTuple._2._3, sentenceId, propositionId))
-          case CLAIM.index => Map(CLAIM.index -> SentenceInfo((claimSentence.sentence + space + surfaceTuple._2._1).trim, surfaceTuple._2._3, sentenceId, propositionId))
+          case SentenceType.PREMISE.index => Map(SentenceType.PREMISE.index -> SentenceInfo((premiseSentence.sentence + space + surfaceTuple._2._1).trim, surfaceTuple._2._3, sentenceId, propositionId))
+          case SentenceType.CLAIM.index => Map(SentenceType.CLAIM.index -> SentenceInfo((claimSentence.sentence + space + surfaceTuple._2._1).trim, surfaceTuple._2._3, sentenceId, propositionId))
           case _ => acc
         }
         acc ++ sentenceMap
