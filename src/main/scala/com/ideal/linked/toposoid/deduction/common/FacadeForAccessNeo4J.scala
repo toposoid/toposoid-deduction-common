@@ -27,7 +27,7 @@ import akka.stream.ActorMaterializer
 */
 import play.api.libs.json.Json
 import com.ideal.linked.common.DeploymentConverter.conf
-import com.ideal.linked.toposoid.common.{CLAIM, LOCAL, PREDICATE_ARGUMENT, PREMISE, SEMIGLOBAL, SENTENCE, TRANSVERSAL_STATE, ToposoidUtils, TransversalState}
+import com.ideal.linked.toposoid.common.{SentenceType,ScopeType, FeatureType, TRANSVERSAL_STATE, ToposoidUtils, TransversalState}
 import com.ideal.linked.toposoid.deduction.common.AnalyzedSentenceObjectUtils.makeSentence
 import com.ideal.linked.toposoid.knowledgebase.featurevector.model.FeatureVectorSearchResult
 import com.ideal.linked.toposoid.knowledgebase.model.{KnowledgeBaseEdge, KnowledgeBaseNode, KnowledgeBaseSemiGlobalNode, KnowledgeFeatureReference, LocalContextForFeature}
@@ -74,7 +74,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
    */
   def getAnalyzedSentenceObjectBySentenceId(propositionId:String, sentenceId:String, sentenceType:Int, lang:String, transversalState:TransversalState):AnalyzedSentenceObject = Try {
     //Neo4JにClaimとして存在している場合に推論が可能になる
-    val nodeType: String = ToposoidUtils.getNodeType(CLAIM.index, LOCAL.index, PREDICATE_ARGUMENT.index)
+    val nodeType: String = ToposoidUtils.getNodeType(SentenceType.CLAIM.index, ScopeType.LOCAL.index, FeatureType.PREDICATE_ARGUMENT.index)
     val query = "MATCH (n1:%s)-[e]->(n2:%s) WHERE n1.sentenceId='%s' AND n2.sentenceId='%s' RETURN n1, e, n2".format(nodeType, nodeType, sentenceId, sentenceId)
     val jsonStr: String = getCypherQueryResult(query, "", transversalState)
     //If there is even one that does not match, it is useless to search further
@@ -147,7 +147,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
    * @return
    */
   def neo4JData2AnalyzedSentenceObjectByPropositionId(propositionId:String, sentenceType:Int, transversalState:TransversalState):AnalyzedSentenceObjects = Try{
-    val nodeType:String = ToposoidUtils.getNodeType(sentenceType, LOCAL.index, PREDICATE_ARGUMENT.index)
+    val nodeType:String = ToposoidUtils.getNodeType(sentenceType, ScopeType.LOCAL.index, FeatureType.PREDICATE_ARGUMENT.index)
     val query = "MATCH (n1:%s)-[e]->(n2:%s) WHERE n1.propositionId='%s' AND n2.propositionId='%s' RETURN n1, e, n2".format(nodeType, nodeType, propositionId, propositionId)
     val jsonStr:String = getCypherQueryResult(query, "", transversalState)
     //If there is even one that does not match, it is useless to search further
@@ -275,7 +275,7 @@ object FacadeForAccessNeo4J extends LazyLogging{
         val lang = idInfo.lang
         val featureId = idInfo.featureId
         val similarity = x._2
-        val nodeType: String = ToposoidUtils.getNodeType(idInfo.sentenceType, SEMIGLOBAL.index, SENTENCE.index)
+        val nodeType: String = ToposoidUtils.getNodeType(idInfo.sentenceType, ScopeType.SEMIGLOBAL.index, FeatureType.SENTENCE.index)
         //Check whether featureVectorSearchResult information exists in Neo4J
         val query = "MATCH (n:%s) WHERE n.propositionId='%s' AND n.sentenceId='%s' RETURN n".format(nodeType, propositionId, featureId)
         val jsonStr: String = getCypherQueryResult(query, "", transversalState)

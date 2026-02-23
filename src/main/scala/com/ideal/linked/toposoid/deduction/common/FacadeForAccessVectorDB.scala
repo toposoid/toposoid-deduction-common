@@ -18,7 +18,7 @@
 package com.ideal.linked.toposoid.deduction.common
 
 import com.ideal.linked.common.DeploymentConverter.conf
-import com.ideal.linked.toposoid.common.{CLAIM, ToposoidUtils, TransversalState}
+import com.ideal.linked.toposoid.common.{SentenceType, ToposoidUtils, TransversalState}
 import com.ideal.linked.toposoid.deduction.common.FacadeForAccessNeo4J.extractExistInNeo4JResultForSentence
 import com.ideal.linked.toposoid.knowledgebase.featurevector.model.{FeatureVectorIdentifier, FeatureVectorSearchResult, SingleFeatureVectorForSearch}
 import com.ideal.linked.toposoid.knowledgebase.regist.model.Knowledge
@@ -40,7 +40,7 @@ object FacadeForAccessVectorDB  extends LazyLogging{
     val (ids, similarities) = (result.ids zip result.similarities).foldLeft((List.empty[FeatureVectorIdentifier], List.empty[Float])) {
       (acc, x) => {
         x._1.sentenceType match {
-          case CLAIM.index => (acc._1 :+ x._1, acc._2 :+ x._2)
+          case SentenceType.CLAIM.index => (acc._1 :+ x._1, acc._2 :+ x._2)
           case _ => acc
         }
       }
